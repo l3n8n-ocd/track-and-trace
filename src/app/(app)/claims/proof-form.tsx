@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
 import { PhotoInput } from "@/components/photo-input";
 import { SubmitButton } from "@/components/submit-button";
 import { Alert, Field, Select, Textarea } from "@/components/ui";
+import { useActionForm } from "@/components/use-action-form";
 import type { ClaimFormState } from "./actions";
 
 export function ProofForm({
@@ -17,10 +17,10 @@ export function ProofForm({
   submitLabel: string;
   statementLabel: string;
 }) {
-  const [state, formAction] = useActionState<ClaimFormState, FormData>(action, {});
+  const { state, pending, onSubmit } = useActionForm<ClaimFormState>(action, {});
   const e = state.fieldErrors ?? {};
   return (
-    <form action={formAction} className="space-y-4" noValidate>
+    <form onSubmit={onSubmit} className="space-y-4" noValidate>
       {state.error && <Alert>{state.error}</Alert>}
       {matchId && <input type="hidden" name="matchId" value={matchId} />}
       <Field
@@ -47,7 +47,9 @@ export function ProofForm({
         Your proof is visible only to you and the Lost and Found administrators.
       </p>
       <div className="flex justify-end">
-        <SubmitButton pendingText="Submitting…">{submitLabel}</SubmitButton>
+        <SubmitButton pending={pending} pendingText="Submitting…">
+          {submitLabel}
+        </SubmitButton>
       </div>
     </form>
   );

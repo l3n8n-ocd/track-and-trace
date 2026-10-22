@@ -1,21 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { SubmitButton } from "@/components/submit-button";
 import { Alert, Field, Input, Select } from "@/components/ui";
+import { useActionForm } from "@/components/use-action-form";
 import { registerAction, type FormState } from "../actions";
 
 type College = { id: number; name: string };
 
 export function RegisterForm({ colleges }: { colleges: College[] }) {
-  const [state, action] = useActionState<FormState, FormData>(registerAction, {});
+  const { state, pending, onSubmit } = useActionForm<FormState>(registerAction, {});
   const [role, setRole] = useState(state.values?.role ?? "student");
   const e = state.fieldErrors ?? {};
   const v = state.values ?? {};
 
   return (
-    <form action={action} className="mt-5 space-y-4" noValidate>
+    <form onSubmit={onSubmit} className="mt-5 space-y-4" noValidate>
       {state.error && <Alert>{state.error}</Alert>}
 
       <Field label="I am a" htmlFor="role" error={e.role} required>
@@ -127,7 +128,7 @@ export function RegisterForm({ colleges }: { colleges: College[] }) {
         {e.consent && <p className="mt-1 text-brand-700">{e.consent}</p>}
       </div>
 
-      <SubmitButton className="w-full" pendingText="Creating account…">
+      <SubmitButton pending={pending} className="w-full" pendingText="Creating account…">
         Create account
       </SubmitButton>
     </form>

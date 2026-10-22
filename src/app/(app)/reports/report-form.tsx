@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
 import { PhotoInput } from "@/components/photo-input";
 import { SubmitButton } from "@/components/submit-button";
 import { Alert, Card, Field, Input, Select, Textarea } from "@/components/ui";
+import { useActionForm } from "@/components/use-action-form";
 import type { ReportFormState } from "./actions";
 
 type Category = { id: number; name: string; children: { id: number; name: string }[] };
@@ -36,14 +36,14 @@ export function ReportForm({
   action: (state: ReportFormState, formData: FormData) => Promise<ReportFormState>;
   existing?: Existing;
 }) {
-  const [state, formAction] = useActionState<ReportFormState, FormData>(action, {});
+  const { state, pending, onSubmit } = useActionForm<ReportFormState>(action, {});
   const e = state.fieldErrors ?? {};
   const v = state.values ?? {};
   const val = (key: keyof Existing & string) => v[key] ?? (existing?.[key] as string | number | null | undefined)?.toString() ?? "";
   const lost = type === "LOST";
 
   return (
-    <form action={formAction} className="space-y-6" noValidate>
+    <form onSubmit={onSubmit} className="space-y-6" noValidate>
       {state.error && <Alert>{state.error}</Alert>}
       {Object.keys(e).length > 0 && <Alert>Please fix the highlighted fields.</Alert>}
       <input type="hidden" name="reportType" value={type} />
@@ -159,7 +159,7 @@ export function ReportForm({
       )}
 
       <div className="flex justify-end">
-        <SubmitButton pendingText={existing ? "Saving…" : "Submitting…"}>
+        <SubmitButton pending={pending} pendingText={existing ? "Saving…" : "Submitting…"}>
           {existing ? "Save changes" : lost ? "Submit lost report" : "Submit found report"}
         </SubmitButton>
       </div>

@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { SubmitButton } from "@/components/submit-button";
 import { Alert, Field, Input, Select } from "@/components/ui";
+import { useActionForm } from "@/components/use-action-form";
 import { changePasswordAction, deactivateAccountAction, updateProfileAction, type ProfileState } from "./actions";
 
 export function ProfileForm({
@@ -14,10 +15,10 @@ export function ProfileForm({
   colleges: { id: number; name: string }[];
   defaults: Record<string, string>;
 }) {
-  const [state, action] = useActionState<ProfileState, FormData>(updateProfileAction, {});
+  const { state, pending, onSubmit } = useActionForm<ProfileState>(updateProfileAction, {});
   const e = state.fieldErrors ?? {};
   return (
-    <form action={action} className="space-y-4" noValidate>
+    <form onSubmit={onSubmit} className="space-y-4" noValidate>
       {state.message && <Alert tone="green">{state.message}</Alert>}
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="First name" htmlFor="firstName" error={e.firstName}>
@@ -79,7 +80,7 @@ export function ProfileForm({
         </div>
       )}
       <div className="flex justify-end">
-        <SubmitButton>Save profile</SubmitButton>
+        <SubmitButton pending={pending}>Save profile</SubmitButton>
       </div>
     </form>
   );

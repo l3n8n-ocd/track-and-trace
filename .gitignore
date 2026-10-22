@@ -44,3 +44,4 @@ next-env.d.ts
 # local uploads in development
 /public/uploads/
 .data/
+test-results/
