@@ -2,10 +2,10 @@
 
 **Web and Mobile-Based Lost and Found Management System for Bulacan State University – Main Campus**
 
-Status: Draft v0.1 (before tech stack selection)
+Status: Draft v0.2. Tech stack decided in [ADR 0001](decisions/0001-tech-stack.md).
 Sources: Chapter I (objectives, scope, limitations), Chapter III (Map/Table and Paper tabs), and the three Lucid diagrams (context diagram, system flowchart, ERD).
 
-This document describes *what* ReturnDesk does and *how its parts fit together*, without committing to specific frameworks. Section 14 lists the decisions to settle in the tech stack discussion.
+This document describes *what* ReturnDesk does and *how its parts fit together*. The concrete technologies are recorded in [ADR 0001](decisions/0001-tech-stack.md); section 14 shows how each decision maps to them.
 
 ---
 
@@ -213,6 +213,8 @@ flowchart LR
 
 **Environments:** `local` → `staging` (for the team and adviser testing) → `production` (the live site used in the evaluation).
 
+**How this maps to the chosen stack ([ADR 0001](decisions/0001-tech-stack.md)):** the web client and API server are one Next.js app on Vercel. The "job queue" and "background worker" are realized as work that runs right after a request finishes (matching, notification emails) plus a daily Vercel Cron job (pickup reminders, expiry checks). The database is MySQL-compatible TiDB Cloud Starter, object storage is Cloudinary, and email goes through Gmail SMTP.
+
 ---
 
 ## 6. Modules
@@ -351,7 +353,7 @@ stateDiagram-v2
 
 ### 9.1 When it runs
 
-As a background job whenever a report is created or edited, and in a nightly batch for open reports. The user never waits for it.
+Right after a report is created or edited (after the response is sent, so the user never waits for it), and in the daily batch for open reports.
 
 ### 9.2 Candidate selection
 
@@ -540,7 +542,7 @@ The system handles personal data and proof of ownership, so the Data Privacy Act
 
 ## 14. Decisions for the tech stack discussion
 
-These are the choices to settle next, with the constraint from this design for each.
+**Decided:** see [ADR 0001](decisions/0001-tech-stack.md) for the chosen stack and the reasons. The table below is kept as the record of the constraints each choice had to meet.
 
 | Decision | Constraint from this design | Notes |
 |---|---|---|
