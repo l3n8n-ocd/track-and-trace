@@ -14,7 +14,7 @@ Where the built system differs from [the system design](system-design.md), and w
 | — | Added `announcement`, `session`, `verification`, and `rate_limit` tables | Announcements (design §7.2) and the login library's sessions, tokens, and rate limits |
 | `LOCATION` | Also has `is_storage` and `is_active` | One table holds both campus places and storage spots; admins can hide old ones |
 
-**Suggested ERD updates for the paper:** add `hidden_details`, `storage_location_id` (second link from REPORT to LOCATION), `ANNOUNCEMENT` (linked to ADMINISTRATOR), and `match_id` on CLAIM.
+The Lucid EERD (Chapter III, Figure 4) includes `hidden_details`, `storage_location_id` (second link from REPORT to LOCATION), `is_storage` on LOCATION, `match_id` on CLAIM, and `ANNOUNCEMENT` (linked to ADMINISTRATOR). The chapter's figures are in [figures/](figures/).
 
 ## Status values
 
