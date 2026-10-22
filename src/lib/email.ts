@@ -52,6 +52,7 @@ export async function sendEmail(message: EmailMessage) {
   };
   const text = [message.title, "", ...message.paragraphs, action ? `\n${action.label}: ${action.url}` : ""].join("\n");
   if (!transporter) {
+    if (env.NODE_ENV === "production") console.warn("[email] SMTP_USER or SMTP_PASSWORD is not set; email not sent");
     console.info(`[email] to=${message.to} subject="${message.subject}"\n${text}`);
     return;
   }
@@ -64,6 +65,6 @@ export async function sendEmail(message: EmailMessage) {
       html: layout(message.title, message.paragraphs, action),
     });
   } catch (error) {
-    console.error("[email] failed to send", message.subject, error);
+    console.error(`[email] failed to send "${message.subject}" to ${message.to}:`, error);
   }
 }
