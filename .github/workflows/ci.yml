@@ -1,0 +1,102 @@
+# Automated checks (IT302 Activity 8, Part E).
+#   Pull request: lint, types, unit tests, build, API tests, Selenium smoke.
+#   Push to main, nightly, release tag: the same plus the full Playwright suite.
+# Vercel deploys main on its own; this workflow only tests.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  schedule:
+    - cron: "30 18 * * *" # 2:30 AM Philippine time
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, types, unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+  integration:
+    name: API, Selenium, and end-to-end tests
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: returndesk
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      # Throwaway values for the CI database; no real accounts or keys.
+      DATABASE_URL: mysql://root:root@127.0.0.1:3306/returndesk
+      BETTER_AUTH_SECRET: ci-only-secret-not-used-anywhere-else
+      APP_URL: http://localhost:3000
+      CRON_SECRET: ci-cron-secret
+      ADMIN_EMAIL: admin@ci.returndesk.test
+      ADMIN_PASSWORD: CiAdmin12345
+      BASE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Create tables, seed data, and API test accounts
+        run: |
+          npm run db:setup
+          npx tsx tests/api/setup-users.ts
+      - run: npm run build:app
+      - name: Start the app
+        run: |
+          npm run start > app.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/login && exit 0; sleep 2; done
+          cat app.log; exit 1
+
+      - name: Full end-to-end suite (Playwright)
+        if: github.event_name != 'pull_request'
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+      - name: API tests (Postman collection via Newman)
+        run: >-
+          npm run test:api --
+          --env-var baseUrl=$BASE_URL
+          --env-var adminEmail=$ADMIN_EMAIL
+          --env-var adminPassword=$ADMIN_PASSWORD
+          --reporters cli,junit --reporter-junit-export test-results/newman.xml
+      - name: Selenium smoke test
+        run: npm run test:selenium
+
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-evidence
+          path: |
+            test-results/
+            app.log
+          if-no-files-found: ignore
+          retention-days: 14

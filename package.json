@@ -12,7 +12,9 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
-    "db:setup": "tsx scripts/db-setup.ts"
+    "db:setup": "tsx scripts/db-setup.ts",
+    "test:selenium": "node --test tests/selenium/",
+    "test:api": "newman run tests/api/returndesk.postman_collection.json --delay-request 3500"
   },
   "dependencies": {
     "better-auth": "^1.7.12",
@@ -37,6 +39,8 @@
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
+    "newman": "^6.2.3",
+    "selenium-webdriver": "^4.38.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",

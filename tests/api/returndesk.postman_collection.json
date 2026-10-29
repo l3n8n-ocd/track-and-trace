@@ -1,0 +1,416 @@
+{
+  "info": {
+    "name": "ReturnDesk API",
+    "description": "API checks for IT302 Activity 8. Run tests/api/setup-users.ts first to create the API test accounts.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Admin login (positive)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"user is the administrator\", () => { pm.expect(body.user.email).to.eql(pm.environment.get(\"adminEmail\") || pm.variables.get(\"adminEmail\")); pm.expect(body.user.role).to.eql(\"admin\"); });",
+              "pm.test(\"a session token is returned\", () => pm.expect(body.token).to.be.a(\"string\").and.not.empty);",
+              "pm.test(\"session cookie is set\", () => pm.expect(pm.response.headers.get(\"Set-Cookie\") || \"\").to.include(\"session_token\"));",
+              "pm.test(\"responds within 2 s\", () => pm.expect(pm.response.responseTime).to.be.below(2000));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{baseUrl}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/sign-in/email",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "sign-in",
+            "email"
+          ]
+        },
+        "description": "Signs in the seeded administrator. The session cookie is reused by the next request.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "2. Admin CSV export (positive)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"content type is CSV\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/csv\"));",
+              "pm.test(\"downloads as an attachment\", () => pm.expect(pm.response.headers.get(\"Content-Disposition\")).to.match(/^attachment; filename=\"returndesk-reports-/));",
+              "pm.test(\"first line is the column header\", () => pm.expect(pm.response.text().split(\"\\r\\n\")[0]).to.include(\"report_id\").and.include(\"status\"));",
+              "pm.test(\"responds within 2 s\", () => pm.expect(pm.response.responseTime).to.be.below(2000));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{baseUrl}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/export?type=reports",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "export"
+          ],
+          "query": [
+            {
+              "key": "type",
+              "value": "reports"
+            }
+          ]
+        },
+        "description": ""
+      }
+    },
+    {
+      "name": "3. Unverified email login (prerequisite failure)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status is 403\", () => pm.response.to.have.status(403));",
+              "const body = pm.response.json();",
+              "pm.test(\"error code is EMAIL_NOT_VERIFIED\", () => pm.expect(body.code).to.eql(\"EMAIL_NOT_VERIFIED\"));",
+              "pm.test(\"no session token is returned\", () => pm.expect(body.token).to.be.undefined);",
+              "pm.test(\"no new session cookie\", () => pm.expect(pm.response.headers.get(\"Set-Cookie\") || \"\").to.not.include(\"session_token=\"));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{baseUrl}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/sign-in/email",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "sign-in",
+            "email"
+          ]
+        },
+        "description": "Prerequisite: the email address must be verified before the first login.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"api.unverified@returndesk.test\",\n  \"password\": \"{{testPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "4. Wrong password (negative)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status is 401\", () => pm.response.to.have.status(401));",
+              "const body = pm.response.json();",
+              "pm.test(\"error code is INVALID_EMAIL_OR_PASSWORD\", () => pm.expect(body.code).to.eql(\"INVALID_EMAIL_OR_PASSWORD\"));",
+              "pm.test(\"message does not reveal which field was wrong\", () => pm.expect(body.message.toLowerCase()).to.include(\"email or password\"));",
+              "pm.test(\"no session token is returned\", () => pm.expect(body.token).to.be.undefined);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{baseUrl}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/sign-in/email",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "sign-in",
+            "email"
+          ]
+        },
+        "description": "",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"api.student@returndesk.test\",\n  \"password\": \"WrongPassword1\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "5. Student login (positive)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"role is student\", () => pm.expect(body.user.role).to.eql(\"student\"));",
+              "pm.test(\"email is verified\", () => pm.expect(body.user.emailVerified).to.eql(true));",
+              "pm.test(\"a session token is returned\", () => pm.expect(body.token).to.be.a(\"string\").and.not.empty);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{baseUrl}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/sign-in/email",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "sign-in",
+            "email"
+          ]
+        },
+        "description": "Replaces the admin session cookie with a student session.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"api.student@returndesk.test\",\n  \"password\": \"{{testPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "6. Student CSV export (authorization failure)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status is 403\", () => pm.response.to.have.status(403));",
+              "pm.test(\"body is not CSV data\", () => pm.expect(pm.response.text()).to.not.include(\"report_id\"));",
+              "pm.test(\"no file download header\", () => pm.expect(pm.response.headers.get(\"Content-Disposition\")).to.be.undefined);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{baseUrl}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/export?type=reports",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "export"
+          ],
+          "query": [
+            {
+              "key": "type",
+              "value": "reports"
+            }
+          ]
+        },
+        "description": ""
+      }
+    },
+    {
+      "name": "7. Student tries to make themselves admin (blocked)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"endpoint is disabled (404)\", () => pm.response.to.have.status(404));",
+              "pm.test(\"response is not a success object\", () => pm.expect(pm.response.text()).to.not.include(\"\\\"status\\\":true\"));",
+              "pm.test(\"responds within 2 s\", () => pm.expect(pm.response.responseTime).to.be.below(2000));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{baseUrl}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/update-user",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "update-user"
+          ]
+        },
+        "description": "Regression test for the role-escalation bug found during this activity.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role\": \"admin\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "8. Session after the role change attempt",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"still the student account\", () => pm.expect(body.user.email).to.eql(\"api.student@returndesk.test\"));",
+              "pm.test(\"role is still student\", () => pm.expect(body.user.role).to.eql(\"student\"));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{baseUrl}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/get-session",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "get-session"
+          ]
+        },
+        "description": ""
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "testPassword",
+      "value": "ApiTest12345"
+    },
+    {
+      "key": "adminEmail",
+      "value": ""
+    },
+    {
+      "key": "adminPassword",
+      "value": ""
+    }
+  ]
+}
