@@ -23,8 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -58,8 +58,8 @@ jobs:
       ADMIN_PASSWORD: CiAdmin12345
       BASE_URL: http://localhost:3000
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -88,7 +88,13 @@ jobs:
           --env-var adminPassword=$ADMIN_PASSWORD
           --reporters cli,junit --reporter-junit-export test-results/newman.xml
       - name: Selenium smoke test
-        run: npm run test:selenium
+        run: |
+          mkdir -p test-results
+          set -o pipefail
+          npm run test:selenium -- --test-reporter=tap | tee test-results/selenium.tap
+      - name: Show Selenium failures as annotations
+        if: failure()
+        run: grep -E "not ok|error:|message:" test-results/selenium.tap | head -20 | sed 's/^/::error title=Selenium::/' || true
 
       - name: Upload test evidence
         if: always()

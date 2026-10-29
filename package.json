@@ -13,7 +13,7 @@
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:setup": "tsx scripts/db-setup.ts",
-    "test:selenium": "node --test tests/selenium/",
+    "test:selenium": "node --test tests/selenium/*.test.mjs",
     "test:api": "newman run tests/api/returndesk.postman_collection.json --delay-request 3500"
   },
   "dependencies": {
