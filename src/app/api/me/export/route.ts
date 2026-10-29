@@ -42,7 +42,7 @@ export async function GET() {
   return new Response(body, {
     headers: {
       "Content-Type": "application/json",
-      "Content-Disposition": 'attachment; filename="returndesk-my-data.json"',
+      "Content-Disposition": 'attachment; filename="track-and-trace-my-data.json"',
       "Cache-Control": "no-store",
     },
   });

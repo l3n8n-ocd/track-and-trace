@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "ReturnDesk API",
+    "name": "Track-and-Trace API",
     "description": "API checks for IT302 Activity 8. Run tests/api/setup-users.ts first to create the API test accounts.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
@@ -69,7 +69,7 @@
             "exec": [
               "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
               "pm.test(\"content type is CSV\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/csv\"));",
-              "pm.test(\"downloads as an attachment\", () => pm.expect(pm.response.headers.get(\"Content-Disposition\")).to.match(/^attachment; filename=\"returndesk-reports-/));",
+              "pm.test(\"downloads as an attachment\", () => pm.expect(pm.response.headers.get(\"Content-Disposition\")).to.match(/^attachment; filename=\"track-and-trace-reports-/));",
               "pm.test(\"first line is the column header\", () => pm.expect(pm.response.text().split(\"\\r\\n\")[0]).to.include(\"report_id\").and.include(\"status\"));",
               "pm.test(\"responds within 2 s\", () => pm.expect(pm.response.responseTime).to.be.below(2000));"
             ]
@@ -148,7 +148,7 @@
         "description": "Prerequisite: the email address must be verified before the first login.",
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"email\": \"api.unverified@returndesk.test\",\n  \"password\": \"{{testPassword}}\"\n}",
+          "raw": "{\n  \"email\": \"api.unverified@trackandtrace.test\",\n  \"password\": \"{{testPassword}}\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -201,7 +201,7 @@
         "description": "",
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"email\": \"api.student@returndesk.test\",\n  \"password\": \"WrongPassword1\"\n}",
+          "raw": "{\n  \"email\": \"api.student@trackandtrace.test\",\n  \"password\": \"WrongPassword1\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -254,7 +254,7 @@
         "description": "Replaces the admin session cookie with a student session.",
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"email\": \"api.student@returndesk.test\",\n  \"password\": \"{{testPassword}}\"\n}",
+          "raw": "{\n  \"email\": \"api.student@trackandtrace.test\",\n  \"password\": \"{{testPassword}}\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -366,7 +366,7 @@
             "exec": [
               "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
               "const body = pm.response.json();",
-              "pm.test(\"still the student account\", () => pm.expect(body.user.email).to.eql(\"api.student@returndesk.test\"));",
+              "pm.test(\"still the student account\", () => pm.expect(body.user.email).to.eql(\"api.student@trackandtrace.test\"));",
               "pm.test(\"role is still student\", () => pm.expect(body.user.role).to.eql(\"student\"));"
             ]
           }

@@ -127,11 +127,11 @@ async function main() {
       const id = randomUUID();
       await db.insert(schema.user).values({
         id,
-        name: "ReturnDesk Administrator",
+        name: "Track-and-Trace Administrator",
         email: adminEmail,
         emailVerified: true,
         idNumber: "ADMIN-0001",
-        firstName: "ReturnDesk",
+        firstName: "Track-and-Trace",
         lastName: "Administrator",
         role: "admin",
       });

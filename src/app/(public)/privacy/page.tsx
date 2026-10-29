@@ -7,7 +7,7 @@ export default function PrivacyPage() {
     <article className="mx-auto max-w-3xl space-y-4 px-4 py-10 text-sm leading-6 text-slate-700">
       <h1 className="text-2xl font-semibold text-slate-900">Data privacy notice</h1>
       <p>
-        ReturnDesk is the lost and found management system of Bulacan State University – Main Campus.
+        Track-and-Trace is the lost and found management system of Bulacan State University – Main Campus.
         This notice explains what personal information it collects and how it is used, in line with the
         Data Privacy Act of 2012 (Republic Act No. 10173).
       </p>

@@ -11,7 +11,7 @@ import { poolOptions } from "../../src/db/connection";
 const OUT = process.env.SHOT_DIR!;
 const IMG = process.env.IMG_DIR!;
 const PASSWORD = "Password123";
-const ADMIN = { email: "admin@returndesk.test", password: "AdminDemo123" };
+const ADMIN = { email: "admin@trackandtrace.test", password: "AdminDemo123" };
 const pool = mysql.createPool(poolOptions(process.env.DEMO_DB!));
 
 const juan = { first: "Juan", last: "Dela Cruz", email: "juan.delacruz@example.com", id: "2023-100245" };

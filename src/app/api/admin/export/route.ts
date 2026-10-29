@@ -98,7 +98,7 @@ export async function GET(request: Request) {
   return new Response("﻿" + csv(rows), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="returndesk-${type}-${stamp}.csv"`,
+      "Content-Disposition": `attachment; filename="track-and-trace-${type}-${stamp}.csv"`,
       "Cache-Control": "no-store",
     },
   });

@@ -6,11 +6,11 @@ import "./globals.css";
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: "ReturnDesk", template: "%s · ReturnDesk" },
+  title: { default: "Track-and-Trace", template: "%s · Track-and-Trace" },
   description:
     "Lost and found management system for Bulacan State University – Main Campus: report, search, match, and claim lost items.",
-  applicationName: "ReturnDesk",
-  appleWebApp: { capable: true, title: "ReturnDesk", statusBarStyle: "default" },
+  applicationName: "Track-and-Trace",
+  appleWebApp: { capable: true, title: "Track-and-Trace", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

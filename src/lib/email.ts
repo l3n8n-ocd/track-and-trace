@@ -26,7 +26,7 @@ function layout(title: string, paragraphs: string[], action?: { label: string; u
        <p style="margin:0 0 12px;font-size:12px;color:#6b7280">If the button doesn't work, copy this link: ${escapeHtml(action.url)}</p>`
     : "";
   return `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#111827">
-    <h2 style="color:#1d4ed8;margin:0 0 16px">ReturnDesk</h2>
+    <h2 style="color:#1d4ed8;margin:0 0 16px">Track-and-Trace</h2>
     <h3 style="margin:0 0 12px">${escapeHtml(title)}</h3>
     ${body}${button}
     <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
@@ -58,9 +58,9 @@ export async function sendEmail(message: EmailMessage) {
   }
   try {
     await transporter.sendMail({
-      from: `ReturnDesk <${env.SMTP_USER}>`,
+      from: `Track-and-Trace <${env.SMTP_USER}>`,
       to: message.to,
-      subject: `ReturnDesk: ${message.subject}`,
+      subject: `Track-and-Trace: ${message.subject}`,
       text,
       html: layout(message.title, message.paragraphs, action),
     });

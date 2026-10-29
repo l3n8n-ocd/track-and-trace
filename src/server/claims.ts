@@ -173,7 +173,7 @@ export async function releaseClaim(adminId: string, claimId: number) {
 
   await notify(claim.claimantId, {
     type: "CLAIM_RELEASED",
-    message: `You picked up "${report.itemName}". Thank you for using ReturnDesk.`,
+    message: `You picked up "${report.itemName}". Thank you for using Track-and-Trace.`,
     link: `/claims/${claimId}`,
     claimId,
   });

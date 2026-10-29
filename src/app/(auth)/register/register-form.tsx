@@ -112,7 +112,7 @@ export function RegisterForm({ colleges }: { colleges: College[] }) {
       <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-600 ring-1 ring-slate-200">
         <p className="font-medium text-slate-800">Data privacy notice</p>
         <p className="mt-1">
-          ReturnDesk collects your name, ID number, college, contact details, and the reports and
+          Track-and-Trace collects your name, ID number, college, contact details, and the reports and
           claims you submit, only to help recover lost items on campus. Lost and found administrators
           can see this information. It is handled under the Data Privacy Act of 2012 (RA 10173). See
           the{" "}

@@ -13,7 +13,7 @@ export default async function PublicLayout({ children }: { children: React.React
           <nav className="flex items-center gap-2">
             {user ? (
               <Link href={user.role === "admin" ? "/admin" : "/dashboard"} className={buttonClass("primary", "sm")}>
-                Open ReturnDesk
+                Open Track-and-Trace
               </Link>
             ) : (
               <>
@@ -31,7 +31,7 @@ export default async function PublicLayout({ children }: { children: React.React
       <main className="flex-1">{children}</main>
       <footer className="border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 text-xs text-slate-500 sm:flex-row sm:justify-between">
-          <p>ReturnDesk · Bulacan State University – Main Campus Lost and Found</p>
+          <p>Track-and-Trace · Bulacan State University – Main Campus Lost and Found</p>
           <Link href="/privacy" className="hover:underline">
             Data privacy notice
           </Link>

@@ -1,8 +1,8 @@
-# ReturnDesk
+# Track-and-Trace
 
 A web and mobile-based lost and found management system for Bulacan State University – Main Campus.
 
-ReturnDesk gives the campus one place to report lost and found items, search found items, see automatically suggested matches, and claim an item with proof of ownership that an administrator verifies before release.
+Track-and-Trace gives the campus one place to report lost and found items, search found items, see automatically suggested matches, and claim an item with proof of ownership that an administrator verifies before release.
 
 This repository holds the live prototype for the BSIT 3I – G1 System Analysis and Design research project, *Web and Mobile-Based Lost and Found Management System for Bulacan State University: Digital Reporting and Item Recovery*.
 

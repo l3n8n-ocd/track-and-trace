@@ -1,6 +1,6 @@
 // Database schema. Mirrors the EERD in docs/system-design.md §7.
 // The user, session, account, verification, and rateLimit tables follow the
-// layout Better Auth expects; everything else is ReturnDesk's own data.
+// layout Better Auth expects; everything else is Track-and-Trace's own data.
 import { relations, sql } from "drizzle-orm";
 import {
   bigint,

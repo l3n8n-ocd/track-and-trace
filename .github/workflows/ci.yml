@@ -54,7 +54,7 @@ jobs:
       BETTER_AUTH_SECRET: ci-only-secret-not-used-anywhere-else
       APP_URL: http://localhost:3000
       CRON_SECRET: ci-cron-secret
-      ADMIN_EMAIL: admin@ci.returndesk.test
+      ADMIN_EMAIL: admin@ci.trackandtrace.test
       ADMIN_PASSWORD: CiAdmin12345
       BASE_URL: http://localhost:3000
     steps:

@@ -39,7 +39,7 @@ export async function notify(userIds: string | string[], notice: Notice) {
           title: notice.email!.title,
           paragraphs: [`Hi ${r.name},`, notice.message, ...(notice.email!.paragraphs ?? [])],
           action: notice.link
-            ? { label: notice.email!.actionLabel ?? "Open ReturnDesk", url: notice.link }
+            ? { label: notice.email!.actionLabel ?? "Open Track-and-Trace", url: notice.link }
             : undefined,
         }),
       ),

@@ -59,7 +59,7 @@ export default async function ProfilePage() {
       <Card className="space-y-3">
         <h2 className="font-semibold">Your data</h2>
         <p className="text-sm text-slate-600">
-          Under the Data Privacy Act you can get a copy of the personal data ReturnDesk holds about you.
+          Under the Data Privacy Act you can get a copy of the personal data Track-and-Trace holds about you.
         </p>
         <a href="/api/me/export" className="inline-block text-sm font-medium text-brand-700 hover:underline">
           Download my data (JSON)

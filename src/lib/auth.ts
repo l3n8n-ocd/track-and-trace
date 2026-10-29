@@ -84,7 +84,7 @@ export const auth = betterAuth({
         title: "Reset your password",
         paragraphs: [
           `Hi ${user.name},`,
-          "We received a request to reset your ReturnDesk password. The link below expires in one hour.",
+          "We received a request to reset your Track-and-Trace password. The link below expires in one hour.",
           "If you didn't ask for this, you can ignore this email.",
         ],
         action: { label: "Reset password", url },
@@ -102,7 +102,7 @@ export const auth = betterAuth({
         title: "Confirm your email address",
         paragraphs: [
           `Hi ${user.name},`,
-          "Thanks for registering with ReturnDesk. Confirm your email to start reporting and claiming items.",
+          "Thanks for registering with Track-and-Trace. Confirm your email to start reporting and claiming items.",
         ],
         action: { label: "Verify email", url },
       });

@@ -1,6 +1,6 @@
 # Setting up the free accounts
 
-ReturnDesk runs on four free services. Create them in this order. Each takes about 5 minutes.
+Track-and-Trace runs on four free services. Create them in this order. Each takes about 5 minutes.
 
 | # | Service | Used for | Values you'll copy |
 |---|---|---|---|
@@ -20,7 +20,7 @@ Use a **new personal Gmail account**, not your BulSU school account. School acco
 1. Go to <https://accounts.google.com/signup> and create an account, for example `returndesk.bulsu@gmail.com`. If that name is taken, pick something close.
 2. Turn on 2-Step Verification: go to <https://myaccount.google.com/security>, click **2-Step Verification**, and follow the steps with your phone number.
 3. Create an App Password: go to <https://myaccount.google.com/apppasswords>.
-   - App name: `ReturnDesk`
+   - App name: `Track-and-Trace`
    - Click **Create**.
    - Copy the 16-character password it shows. **It is shown only once.** Remove the spaces, so `abcd efgh ijkl mnop` becomes `abcdefghijklmnop`.
 4. Write down:
@@ -81,8 +81,8 @@ Do steps 4.1 and 4.2 now. Do step 4.3 once the starter code is pushed to GitHub;
 ### 4.1 Create the account
 
 1. Go to <https://vercel.com/signup>.
-2. Choose the **Hobby** (free) plan and click **Continue with GitHub**, using the GitHub account that owns the ReturnDesk repo.
-3. Allow Vercel to access your GitHub account. When asked which repositories, choose **Only select repositories** and pick **ReturnDesk**.
+2. Choose the **Hobby** (free) plan and click **Continue with GitHub**, using the GitHub account that owns the Track-and-Trace repo.
+3. Allow Vercel to access your GitHub account. When asked which repositories, choose **Only select repositories** and pick **Track-and-Trace**.
 
 ### 4.2 Generate two random secrets
 
@@ -99,7 +99,7 @@ Generate each one separately, with either option:
 ### 4.3 Import the project (after the code is pushed)
 
 1. In Vercel, click **Add New… → Project**.
-2. Find **ReturnDesk** in the list and click **Import**.
+2. Find **Track-and-Trace** in the list and click **Import**.
 3. Framework Preset: **Next.js** (detected automatically). Leave the build settings as they are.
 4. Open **Environment Variables** and add each of these:
 
@@ -130,6 +130,6 @@ From then on, every push to the `main` branch updates the live site automaticall
 - [ ] Gmail account with 2-Step Verification and an App Password
 - [ ] TiDB Cloud Starter cluster in Singapore, `returndesk` database created, `DATABASE_URL` built
 - [ ] Cloudinary cloud name, API key, and API secret
-- [ ] Vercel account linked to the ReturnDesk repo
+- [ ] Vercel account linked to the Track-and-Trace repo
 - [ ] `BETTER_AUTH_SECRET` and `CRON_SECRET` generated
 - [ ] Project imported, environment variables added, deployed, `APP_URL` set, redeployed

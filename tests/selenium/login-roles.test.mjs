@@ -11,7 +11,7 @@ import { Builder, By, until } from "selenium-webdriver";
 import chrome from "selenium-webdriver/chrome.js";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
-const STUDENT = { email: "api.student@returndesk.test", password: process.env.API_TEST_PASSWORD ?? "ApiTest12345" };
+const STUDENT = { email: "api.student@trackandtrace.test", password: process.env.API_TEST_PASSWORD ?? "ApiTest12345" };
 const ADMIN = { email: process.env.ADMIN_EMAIL, password: process.env.ADMIN_PASSWORD };
 const WAIT = 15_000;
 const OUT = "test-results/selenium";

@@ -5,7 +5,7 @@
 // Uses DATABASE_URL (or .env.local) and refuses to touch a non-local database.
 import { config } from "dotenv";
 import { hashPassword } from "better-auth/crypto";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { randomUUID } from "node:crypto";
@@ -15,8 +15,8 @@ import * as schema from "../../src/db/schema";
 config({ path: ".env.local" });
 
 const API_USERS = {
-  student: { email: "api.student@returndesk.test", verified: true },
-  unverified: { email: "api.unverified@returndesk.test", verified: false },
+  student: { email: "api.student@trackandtrace.test", verified: true },
+  unverified: { email: "api.unverified@trackandtrace.test", verified: false },
 };
 
 async function main() {
@@ -31,7 +31,12 @@ async function main() {
   const pool = mysql.createPool(poolOptions(url));
   const db = drizzle(pool, { schema, mode: "default" });
   const emails = Object.values(API_USERS).map((u) => u.email);
-  const old = await db.select({ id: schema.user.id }).from(schema.user).where(inArray(schema.user.email, emails));
+  const idNumbers = Object.keys(API_USERS).map((key) => `API-${key.toUpperCase()}`);
+  // Match on ID number too, so accounts left from an older email domain are replaced.
+  const old = await db
+    .select({ id: schema.user.id })
+    .from(schema.user)
+    .where(or(inArray(schema.user.email, emails), inArray(schema.user.idNumber, idNumbers)));
   for (const { id } of old) {
     await db.delete(schema.session).where(eq(schema.session.userId, id));
     await db.delete(schema.account).where(eq(schema.account.userId, id));

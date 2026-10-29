@@ -112,7 +112,7 @@ export default async function ReportPage({ params, searchParams }: PageProps<"/r
           <h2 className="font-semibold">Possible matches</h2>
           {matches.length === 0 ? (
             <p className="mt-2 text-sm text-slate-600">
-              No matches yet. ReturnDesk checks new found reports automatically and will notify you.
+              No matches yet. Track-and-Trace checks new found reports automatically and will notify you.
             </p>
           ) : (
             <ul className="mt-3 divide-y divide-slate-100">

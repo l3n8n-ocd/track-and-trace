@@ -1,11 +1,11 @@
-# ReturnDesk — System Design
+# Track-and-Trace — System Design
 
 **Web and Mobile-Based Lost and Found Management System for Bulacan State University – Main Campus**
 
 Status: Draft v0.2. Tech stack decided in [ADR 0001](decisions/0001-tech-stack.md).
 Sources: Chapter I (objectives, scope, limitations), Chapter III (Map/Table and Paper tabs), and the three Lucid diagrams (context diagram, system flowchart, ERD).
 
-This document describes *what* ReturnDesk does and *how its parts fit together*. The concrete technologies are recorded in [ADR 0001](decisions/0001-tech-stack.md); section 14 shows how each decision maps to them.
+This document describes *what* Track-and-Trace does and *how its parts fit together*. The concrete technologies are recorded in [ADR 0001](decisions/0001-tech-stack.md); section 14 shows how each decision maps to them.
 
 ---
 
@@ -33,7 +33,7 @@ This document describes *what* ReturnDesk does and *how its parts fit together*.
 
 ## 1. Goals and scope
 
-ReturnDesk replaces notice boards, verbal announcements, and social media posts with one authorized channel for lost and found items on BulSU – Main Campus.
+Track-and-Trace replaces notice boards, verbal announcements, and social media posts with one authorized channel for lost and found items on BulSU – Main Campus.
 
 **In scope (Chapter I objectives)**
 
@@ -51,7 +51,7 @@ ReturnDesk replaces notice boards, verbal announcements, and social media posts 
 - Items lost outside the BulSU – Main Campus environment.
 - Items that were never reported. Matching only works on reports in the database.
 - Deciding ownership automatically. The system suggests matches; an administrator gives the final approval.
-- Guaranteeing physical recovery. ReturnDesk records and matches items; the university's storage area holds them.
+- Guaranteeing physical recovery. Track-and-Trace records and matches items; the university's storage area holds them.
 - Image-based (photo) matching. Text and attribute matching only for this version; see §9.4.
 
 **Delivery form.** The prototype will be a live website. To meet the "web and mobile" objective with one codebase, it is designed as a **responsive web app installable as a PWA** (works in a phone browser and can be added to the home screen). A native mobile app stays optional (see §14).
@@ -173,7 +173,7 @@ flowchart LR
         M["Phone browser / PWA<br/>(Android, iOS)"]
     end
 
-    subgraph ReturnDesk["ReturnDesk backend"]
+    subgraph Track-and-Trace["Track-and-Trace backend"]
         API["API server<br/>(auth, reports, search,<br/>claims, admin)"]
         WK["Background worker<br/>(matching, emails,<br/>expiry, reminders)"]
         Q[("Job queue")]

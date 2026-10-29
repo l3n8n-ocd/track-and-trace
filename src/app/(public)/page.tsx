@@ -8,7 +8,7 @@ const steps = [
   },
   {
     title: "Match",
-    body: "ReturnDesk compares lost and found reports automatically and alerts you when it finds a likely match.",
+    body: "Track-and-Trace compares lost and found reports automatically and alerts you when it finds a likely match.",
   },
   {
     title: "Claim",
@@ -28,7 +28,7 @@ export default function HomePage() {
             Lost something on campus? Let&apos;s get it back to you.
           </h1>
           <p className="mt-4 max-w-xl text-brand-100">
-            ReturnDesk is the official channel for reporting, searching, and claiming lost and found
+            Track-and-Trace is the official channel for reporting, searching, and claiming lost and found
             items. No more scrolling through group chats and notice boards.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -64,7 +64,7 @@ export default function HomePage() {
         <div className="rounded-lg bg-amber-50 p-5 text-sm text-amber-900 ring-1 ring-amber-200">
           <p className="font-semibold">Found an item?</p>
           <p className="mt-1">
-            Report it in ReturnDesk, then bring it to the Lost and Found Office. Under the Civil Code
+            Report it in Track-and-Trace, then bring it to the Lost and Found Office. Under the Civil Code
             (Articles 719–720), found property must be returned to its owner or turned over to the
             proper authorities. The office keeps it safe until the owner is verified.
           </p>

@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "ReturnDesk – BulSU Lost and Found",
-    short_name: "ReturnDesk",
+    name: "Track-and-Trace – BulSU Lost and Found",
+    short_name: "Track-and-Trace",
     description: "Report, search, match, and claim lost items at Bulacan State University – Main Campus.",
     start_url: "/dashboard",
     scope: "/",
