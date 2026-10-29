@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { db, run } from "./helpers";
+import { closeDb, db } from "./helpers";
+
+// Not the shared run id: the flow spec searches for that id and must not
+// find the found items created here.
+const tag = `daily-${Math.random().toString(36).slice(2, 8)}`;
 
 type Row = Record<string, unknown>;
 async function one(sql: string, params: unknown[] = []) {
@@ -21,13 +25,13 @@ test("daily job: reminders, lapsed claims, and expired items", async ({ request 
   const stale = await insert(
     `insert into report (user_id, category_id, location_id, report_type, item_name, date_lost_or_found, status, date_verified)
      values (?, ?, ?, 'FOUND', ?, '2026-01-01', 'VERIFIED', now() - interval 70 day)`,
-    [...base, `Old umbrella ${run}`],
+    [...base, `Old umbrella ${tag}`],
   );
   // Found item with an approved claim past its deadline -> claim LAPSED.
   const claimed = await insert(
     `insert into report (user_id, category_id, location_id, report_type, item_name, date_lost_or_found, status, date_verified)
      values (?, ?, ?, 'FOUND', ?, '2026-01-01', 'VERIFIED', now())`,
-    [...base, `Water bottle ${run}`],
+    [...base, `Water bottle ${tag}`],
   );
   const lapsing = await insert(
     `insert into claim (report_id, claimant_id, claim_status, pickup_deadline) values (?, ?, 'APPROVED', now() - interval 1 day)`,
@@ -54,5 +58,5 @@ test("daily job: reminders, lapsed claims, and expired items", async ({ request 
 });
 
 test.afterAll(async () => {
-  await db().end();
+  await closeDb();
 });

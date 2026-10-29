@@ -1,6 +1,6 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
-import { ADMIN, db, login, logout, register, run } from "./helpers";
+import { ADMIN, closeDb, db, login, logout, register, run } from "./helpers";
 
 const owner = { first: "Owner", email: `owner-${run}@example.com`, idNumber: `O-${run}` };
 const finder = { first: "Finder", email: `finder-${run}@example.com`, idNumber: `F-${run}` };
@@ -168,5 +168,5 @@ test.describe.serial("report → match → claim → release", () => {
 });
 
 test.afterAll(async () => {
-  await db().end();
+  await closeDb();
 });

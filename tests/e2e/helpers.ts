@@ -15,6 +15,12 @@ export function db() {
   return pool;
 }
 
+// Each spec closes the pool when it finishes; the next spec opens a new one.
+export async function closeDb() {
+  await pool?.end();
+  pool = null;
+}
+
 export async function register(page: Page, who: { first: string; email: string; idNumber: string }) {
   await page.goto("/register");
   await page.selectOption("#role", "student");

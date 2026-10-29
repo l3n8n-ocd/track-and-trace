@@ -10,6 +10,11 @@ export const auth = betterAuth({
   baseURL: appUrl(),
   trustedOrigins: trustedOrigins(),
   secret: env.BETTER_AUTH_SECRET,
+  // Registration and profile changes go through the app's server actions,
+  // which also write the student/faculty/staff record and check consent.
+  // Calling these endpoints directly would skip that, and update-user would
+  // let a user change their own role.
+  disabledPaths: ["/sign-up/email", "/update-user"],
   database: drizzleAdapter(db, {
     provider: "mysql",
     schema: {
@@ -40,6 +45,16 @@ export const auth = betterAuth({
           const role = (data as { role?: string }).role ?? "student";
           if (!["student", "faculty", "staff"].includes(role)) return false;
           return { data: { ...data, role } };
+        },
+      },
+      update: {
+        // Role and account status are changed by administrators directly in
+        // the database, never through the login library.
+        before: async (data) => {
+          const rest: Record<string, unknown> = { ...data };
+          delete rest.role;
+          delete rest.status;
+          return { data: rest };
         },
       },
     },
