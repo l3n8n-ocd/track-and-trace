@@ -86,19 +86,28 @@ jobs:
           --env-var baseUrl=$BASE_URL
           --env-var adminEmail=$ADMIN_EMAIL
           --env-var adminPassword=$ADMIN_PASSWORD
-          --reporters cli,junit --reporter-junit-export test-results/newman.xml
+          --reporters cli,json,junit --reporter-junit-export test-results/newman.xml
+          --reporter-json-export test-results/newman.json
+      - name: Summarize API results
+        if: always()
+        run: >-
+          node -e "const r=require('./test-results/newman.json').run.stats;
+          console.log('::notice title=Newman::requests '+r.requests.total+', assertions '+r.assertions.total+', failed '+r.assertions.failed)" || true
       - name: Selenium smoke test
         run: |
           mkdir -p test-results
           set -o pipefail
           npm run test:selenium -- --test-reporter=tap | tee test-results/selenium.tap
+      - name: Summarize Selenium results
+        if: always()
+        run: echo "::notice title=Selenium::$(grep -E '^# (tests|pass|fail|skipped)' test-results/selenium.tap | tr '\n' ' ')" || true
       - name: Show Selenium failures as annotations
         if: failure()
         run: grep -E "not ok|error:|message:" test-results/selenium.tap | head -20 | sed 's/^/::error title=Selenium::/' || true
 
       - name: Upload test evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-evidence
           path: |
