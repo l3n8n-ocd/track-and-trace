@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { Card, PageHeader } from "@/components/ui";
+import { ClipboardCheck, IdCard, Scale, Send } from "lucide-react";
+import { ICON_STROKE, PageHeader } from "@/components/ui";
 import { formatDate } from "@/lib/format";
 import { requireUser } from "@/lib/session";
 import { getPublicFoundItem } from "@/server/items";
@@ -8,6 +9,13 @@ import { createClaimAction } from "../../../claims/actions";
 import { ProofForm } from "../../../claims/proof-form";
 
 export const metadata: Metadata = { title: "File a claim" };
+
+const HOW = [
+  { icon: Send, text: "Describe the item and attach any proof you have." },
+  { icon: Scale, text: "An administrator compares it with the full found report, including details hidden from the listing." },
+  { icon: ClipboardCheck, text: "You'll be notified if the claim is approved, rejected, or needs more proof." },
+  { icon: IdCard, text: "If approved, pick up the item at the Lost and Found Office with a valid ID before the deadline." },
+];
 
 export default async function ClaimItemPage({ params, searchParams }: PageProps<"/items/[id]/claim">) {
   const user = await requireUser();
@@ -21,28 +29,34 @@ export default async function ClaimItemPage({ params, searchParams }: PageProps<
   const matchId = item.matches.find((m) => m.id === Number(sp.match))?.id ?? item.matches[0]?.id ?? null;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-5xl">
       <PageHeader
-        title="File a claim"
-        description={`For found item #${item.id}: ${item.itemName} (${item.category}, found at ${item.building} on ${formatDate(item.dateFound)}).`}
+        eyebrow={`Found item #${item.id}`}
+        title={`Claim ${item.itemName}`}
+        description={`${item.category}, found at ${item.building} on ${formatDate(item.dateFound)}.`}
       />
-      <Card className="space-y-2 bg-sky-50 text-sm text-sky-900 ring-sky-200">
-        <p className="font-medium">How claims work</p>
-        <ol className="list-decimal space-y-1 pl-5">
-          <li>Describe the item and attach any proof you have.</li>
-          <li>An administrator compares it with the full found report, including details hidden from the listing.</li>
-          <li>You&apos;ll be notified if the claim is approved, rejected, or needs more proof.</li>
-          <li>If approved, pick up the item at the Lost and Found Office with a valid ID before the deadline.</li>
-        </ol>
-      </Card>
-      <Card>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
         <ProofForm
           action={createClaimAction.bind(null, id)}
           matchId={matchId}
           submitLabel="Submit claim"
           statementLabel="Why is this item yours?"
+          guided
         />
-      </Card>
+        <aside className="rounded-2xl border border-line bg-paper p-5 lg:sticky lg:top-24">
+          <p className="font-display font-semibold text-ink">How claims work</p>
+          <ol className="mt-4 space-y-4">
+            {HOW.map(({ icon: Icon, text }, i) => (
+              <li key={i} className="flex gap-3 text-sm leading-relaxed text-ink-soft">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-sand text-crimson">
+                  <Icon aria-hidden strokeWidth={ICON_STROKE} className="size-4" />
+                </span>
+                {text}
+              </li>
+            ))}
+          </ol>
+        </aside>
+      </div>
     </div>
   );
 }

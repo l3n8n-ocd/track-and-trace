@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { and, count, desc, eq, gte, inArray, lte, or, type SQL } from "drizzle-orm";
-import { Button, EmptyState, Field, Input, LinkButton, PageHeader, Select } from "@/components/ui";
+import { ArrowRight, CalendarDays, ChevronDown, ImageOff, MapPin, PackageSearch, Search, Tag, X } from "lucide-react";
+import { TypeBadge } from "@/components/status-badge";
+import { Button, EmptyState, Field, ICON_STROKE, Input, LinkButton, PageHeader, Pagination, Select, Toolbar } from "@/components/ui";
 import { db, schema } from "@/db";
 import { formatDate } from "@/lib/format";
 import { requireUser } from "@/lib/session";
@@ -97,19 +99,22 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
     return `/search?${params}`;
   };
 
+  const hasFilters = Boolean(q || category || place || from || to);
+
   return (
     <div>
       <PageHeader
+        icon={Search}
         title="Search found items"
         description="Items the Lost and Found Office has received. Details and photos are limited so only the real owner can describe them."
       />
-      <form className="mb-6 grid gap-3 rounded-lg bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:grid-cols-2 lg:grid-cols-6" role="search">
-        <Field label="Keywords" htmlFor="q" className="sm:col-span-2">
-          <Input id="q" name="q" defaultValue={q} placeholder="e.g. umbrella, calculator" />
+      <Toolbar className="grid gap-3 sm:grid-cols-2 lg:grid-cols-12" role="search">
+        <Field label="Keywords" htmlFor="q" className="sm:col-span-2 lg:col-span-4">
+          <Input id="q" name="q" icon={Search} defaultValue={q} placeholder="e.g. umbrella, calculator, ID" />
         </Field>
-        <Field label="Category" htmlFor="category">
-          <Select id="category" name="category" defaultValue={category || ""}>
-            <option value="">All</option>
+        <Field label="Category" htmlFor="category" className="lg:col-span-3">
+          <Select id="category" name="category" icon={Tag} defaultValue={category || ""}>
+            <option value="">All categories</option>
             {categories.map((c) => (
               <optgroup key={c.id} label={c.name}>
                 <option value={c.id}>All {c.name.toLowerCase()}</option>
@@ -122,9 +127,9 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
             ))}
           </Select>
         </Field>
-        <Field label="Place found" htmlFor="place">
-          <Select id="place" name="place" defaultValue={place || ""}>
-            <option value="">Anywhere</option>
+        <Field label="Place found" htmlFor="place" className="lg:col-span-3">
+          <Select id="place" name="place" icon={MapPin} defaultValue={place || ""}>
+            <option value="">Anywhere on campus</option>
             {places.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.label}
@@ -132,50 +137,90 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
             ))}
           </Select>
         </Field>
-        <Field label="From" htmlFor="from">
-          <Input id="from" name="from" type="date" defaultValue={from} />
-        </Field>
-        <Field label="To" htmlFor="to">
-          <Input id="to" name="to" type="date" defaultValue={to} />
-        </Field>
-        <div className="flex gap-2 sm:col-span-2 lg:col-span-6">
-          <Button type="submit">Search</Button>
-          <LinkButton href="/search" variant="ghost">
-            Clear
-          </LinkButton>
+        <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-2">
+          <Button type="submit" className="flex-1">
+            <Search aria-hidden />
+            Search
+          </Button>
         </div>
-      </form>
+        <details className="group sm:col-span-2 lg:col-span-12" open={Boolean(from || to)}>
+          <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-ink-soft hover:text-ink">
+            <CalendarDays aria-hidden strokeWidth={ICON_STROKE} className="size-4" />
+            Date range
+            <ChevronDown aria-hidden strokeWidth={ICON_STROKE} className="size-4 transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:max-w-xl">
+            <Field label="Found from" htmlFor="from">
+              <Input id="from" name="from" type="date" icon={CalendarDays} defaultValue={from} />
+            </Field>
+            <Field label="Found until" htmlFor="to">
+              <Input id="to" name="to" type="date" icon={CalendarDays} defaultValue={to} />
+            </Field>
+          </div>
+        </details>
+      </Toolbar>
 
-      <p className="mb-3 text-sm text-slate-600">
-        {total} item{total === 1 ? "" : "s"} found
-      </p>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-ink-soft">
+          {total} item{total === 1 ? "" : "s"} found
+        </p>
+        {hasFilters && (
+          <Link href="/search" className="inline-flex items-center gap-1 text-sm font-semibold text-crimson hover:underline">
+            <X aria-hidden strokeWidth={ICON_STROKE} className="size-4" />
+            Clear filters
+          </Link>
+        )}
+      </div>
       {rows.length === 0 ? (
-        <EmptyState title="No matching items">
-          Try fewer keywords or a wider date range. If you lost something,{" "}
-          <Link href="/reports/new?type=lost" className="text-brand-700 underline">
-            file a lost report
-          </Link>{" "}
-          and we&apos;ll alert you when it turns up.
+        <EmptyState
+          icon={PackageSearch}
+          title="No matching items"
+          action={<LinkButton href="/reports/new?type=lost">File a lost report</LinkButton>}
+        >
+          Try fewer keywords or a wider date range. If you lost something, file a lost report and we&apos;ll
+          alert you when it turns up.
         </EmptyState>
       ) : (
-        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {rows.map((r) => {
             const img = firstImage.get(r.id);
             return (
               <li key={r.id}>
-                <Link href={`/items/${r.id}`} className="block overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200 hover:ring-brand-200">
-                  <div className="aspect-[4/3] bg-slate-100">
-                    {img && (
+                <Link
+                  href={`/items/${r.id}`}
+                  className="group block overflow-hidden rounded-2xl border border-line bg-paper transition-colors hover:border-line-strong"
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden bg-sand">
+                    {img ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={photoUrl(img, { blurred: true, width: 400 })} alt="" className="h-full w-full object-cover" />
+                      <img
+                        src={photoUrl(img, { blurred: true, width: 480 })}
+                        alt=""
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                      />
+                    ) : (
+                      <span className="flex h-full items-center justify-center text-ink-faint">
+                        <ImageOff aria-hidden strokeWidth={ICON_STROKE} className="size-6" />
+                      </span>
                     )}
+                    <span className="absolute left-3 top-3">
+                      <TypeBadge type="FOUND" />
+                    </span>
                   </div>
-                  <div className="p-3">
-                    <p className="truncate font-medium">{r.itemName}</p>
-                    <p className="mt-0.5 truncate text-xs text-slate-600">
-                      {r.category} · {r.building}
+                  <div className="p-4">
+                    <p className="truncate text-[15px] font-semibold text-ink">{r.itemName}</p>
+                    <p className="mt-1.5 flex items-center gap-1.5 truncate text-[13px] text-ink-muted">
+                      <Tag aria-hidden strokeWidth={ICON_STROKE} className="size-3.5 shrink-0" />
+                      {r.category}
                     </p>
-                    <p className="text-xs text-slate-500">Found {formatDate(r.date)}</p>
+                    <p className="mt-1 flex items-center gap-1.5 truncate text-[13px] text-ink-muted">
+                      <MapPin aria-hidden strokeWidth={ICON_STROKE} className="size-3.5 shrink-0" />
+                      {r.building} · {formatDate(r.date)}
+                    </p>
+                    <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-crimson">
+                      Is this yours?
+                      <ArrowRight aria-hidden strokeWidth={ICON_STROKE} className="size-4 transition-transform group-hover:translate-x-0.5" />
+                    </p>
                   </div>
                 </Link>
               </li>
@@ -184,23 +229,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
         </ul>
       )}
 
-      {pages > 1 && (
-        <nav className="mt-6 flex items-center justify-center gap-3 text-sm" aria-label="Pagination">
-          {page > 1 && (
-            <Link href={qs(page - 1)} className="text-brand-700 hover:underline">
-              ← Previous
-            </Link>
-          )}
-          <span className="text-slate-600">
-            Page {page} of {pages}
-          </span>
-          {page < pages && (
-            <Link href={qs(page + 1)} className="text-brand-700 hover:underline">
-              Next →
-            </Link>
-          )}
-        </nav>
-      )}
+      <Pagination page={page} pages={pages} href={qs} />
     </div>
   );
 }

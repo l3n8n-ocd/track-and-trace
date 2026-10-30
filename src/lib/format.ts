@@ -38,3 +38,8 @@ export function daysAgo(days: number) {
 export function datePHFromToday(days: number) {
   return new Date(Date.now() + days * 86_400_000).toLocaleDateString("en-CA", { timeZone: TZ });
 }
+
+// Whole days between `d` and now.
+export function daysSince(d: Date) {
+  return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86_400_000));
+}

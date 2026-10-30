@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { and, desc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { MatchStatusBadge, ReportStatusBadge, TypeBadge } from "@/components/status-badge";
+import { ChevronRight, EyeOff, Info, Pencil, ScanSearch, Undo2 } from "lucide-react";
+import { MatchScore, MatchStatusBadge, ReportStatusBadge, TypeBadge } from "@/components/status-badge";
+import { StatusJourney } from "@/components/status-journey";
 import { SubmitButton } from "@/components/submit-button";
-import { Alert, Card, DetailList, LinkButton, PageHeader } from "@/components/ui";
+import { Alert, Card, CardHeader, DetailList, ICON_STROKE, LinkButton, PageHeader } from "@/components/ui";
 import { db, schema } from "@/db";
 import { formatDate, formatDateTime } from "@/lib/format";
+import { reportJourney } from "@/lib/journey";
 import { requireUser } from "@/lib/session";
 import { locationLabel } from "@/server/options";
 import { imagesFor, selectReports } from "@/server/queries";
@@ -43,25 +46,36 @@ export default async function ReportPage({ params, searchParams }: PageProps<"/r
       ).map((m) => ({ ...m.match, foundReport: { ...m.found, category: m.category, location: m.location } }))
     : [];
   const editable = ["PENDING", "VERIFIED"].includes(report.status);
+  const journey = reportJourney(report, {
+    audience: "owner",
+    hasMatch: matches.some((m) => m.matchStatus !== "REJECTED"),
+  });
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6">
       <PageHeader
         title={report.itemName}
+        eyebrow={
+          <Link href="/reports" className="hover:text-oxblood">
+            My reports · #{report.id}
+          </Link>
+        }
         description={
           <span className="flex flex-wrap items-center gap-2">
-            <TypeBadge type={report.reportType} /> <ReportStatusBadge status={report.status} /> Report #{report.id} ·
-            filed {formatDateTime(report.dateReported)}
+            <TypeBadge type={report.reportType} /> <ReportStatusBadge status={report.status} />
+            <span className="text-sm">Filed {formatDateTime(report.dateReported)}</span>
           </span>
         }
         actions={
           editable && (
             <>
               <LinkButton href={`/reports/${id}/edit`} variant="secondary">
+                <Pencil aria-hidden />
                 Edit
               </LinkButton>
               <form action={withdrawReportAction.bind(null, id)}>
                 <SubmitButton variant="danger" pendingText="Withdrawing…">
+                  <Undo2 aria-hidden />
                   Withdraw
                 </SubmitButton>
               </form>
@@ -79,11 +93,11 @@ export default async function ReportPage({ params, searchParams }: PageProps<"/r
         </Alert>
       )}
       {sp.updated && <Alert tone="green">Your changes were saved.</Alert>}
-      {!lost && report.status === "PENDING" && !sp.created && (
-        <Alert tone="amber">Waiting for the Lost and Found Office to receive and verify this item.</Alert>
-      )}
+
+      <StatusJourney journey={journey} title="Where your report is" />
 
       <Card>
+        <CardHeader icon={Info} title="Report details" />
         <DetailList
           items={[
             ["Category", report.category.name],
@@ -91,16 +105,40 @@ export default async function ReportPage({ params, searchParams }: PageProps<"/r
             ["Place", [locationLabel(report.location), report.locationNote].filter(Boolean).join(", ")],
             ["Color", report.color],
             ["Brand", report.brand],
-            ["Description", report.description],
-            ["Hidden details (only you and admins)", report.hiddenDetails],
           ]}
+          columns={3}
         />
+        {report.description && (
+          <div className="mt-5 border-t border-line pt-5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Description</p>
+            <p className="mt-1 whitespace-pre-line text-[15px] leading-relaxed text-ink">{report.description}</p>
+          </div>
+        )}
+        {report.hiddenDetails && (
+          <div className="mt-4 rounded-2xl border border-crimson/15 bg-crimson-tint/40 p-4">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-crimson">
+              <EyeOff aria-hidden strokeWidth={ICON_STROKE} className="size-3.5" />
+              Private · only you and admins
+            </p>
+            <p className="mt-1 whitespace-pre-line text-[15px] text-ink">{report.hiddenDetails}</p>
+          </div>
+        )}
         {report.images.length > 0 && (
           <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {report.images.map((img) => (
-              <a key={img.id} href={photoUrl(img.imagePath, { width: 1600 })} target="_blank" rel="noreferrer">
+              <a
+                key={img.id}
+                href={photoUrl(img.imagePath, { width: 1600 })}
+                target="_blank"
+                rel="noreferrer"
+                className="group overflow-hidden rounded-xl ring-1 ring-line"
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photoUrl(img.imagePath, { width: 400 })} alt={report.itemName} className="aspect-square w-full rounded-md object-cover ring-1 ring-slate-200" />
+                <img
+                  src={photoUrl(img.imagePath, { width: 400 })}
+                  alt={report.itemName}
+                  className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                />
               </a>
             ))}
           </div>
@@ -109,28 +147,34 @@ export default async function ReportPage({ params, searchParams }: PageProps<"/r
 
       {lost && (
         <Card>
-          <h2 className="font-semibold">Possible matches</h2>
+          <CardHeader
+            icon={ScanSearch}
+            title="Possible matches"
+            description="Found items that look like yours. Only claim one if you can describe details that aren't shown."
+          />
           {matches.length === 0 ? (
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="rounded-xl bg-cream/70 px-4 py-3.5 text-sm text-ink-muted">
               No matches yet. Track-and-Trace checks new found reports automatically and will notify you.
             </p>
           ) : (
-            <ul className="mt-3 divide-y divide-slate-100">
+            <ul className="-mx-2 divide-y divide-line">
               {matches.map((m) => (
-                <li key={m.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                  <div>
-                    <p className="font-medium">{m.foundReport.itemName}</p>
-                    <p className="text-sm text-slate-600">
-                      {m.foundReport.category.name} · {m.foundReport.location.buildingName} · found{" "}
-                      {formatDate(m.foundReport.dateLostOrFound)} · score {m.matchScore.toFixed(0)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MatchStatusBadge status={m.matchStatus} />
-                    <Link href={`/items/${m.foundReportId}?match=${m.id}`} className="text-sm font-medium text-brand-700 hover:underline">
-                      View
-                    </Link>
-                  </div>
+                <li key={m.id}>
+                  <Link
+                    href={`/items/${m.foundReportId}?match=${m.id}`}
+                    className="group flex flex-wrap items-center gap-3 rounded-xl px-2 py-3 hover:bg-sand/60"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-ink">{m.foundReport.itemName}</p>
+                      <p className="mt-0.5 text-sm text-ink-muted">
+                        {m.foundReport.category.name} · {m.foundReport.location.buildingName} · found{" "}
+                        {formatDate(m.foundReport.dateLostOrFound)}
+                      </p>
+                    </div>
+                    <MatchScore score={m.matchScore} />
+                    <MatchStatusBadge status={m.matchStatus} size="sm" />
+                    <ChevronRight aria-hidden strokeWidth={ICON_STROKE} className="size-5 text-ink-faint group-hover:text-ink" />
+                  </Link>
                 </li>
               ))}
             </ul>

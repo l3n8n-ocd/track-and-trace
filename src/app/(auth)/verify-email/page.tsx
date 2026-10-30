@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Card } from "@/components/ui";
+import { ArrowLeft } from "lucide-react";
+import { AuthHeading } from "../auth-heading";
 import { ResendForm } from "./resend-form";
 
 export const metadata: Metadata = { title: "Verify your email" };
@@ -9,19 +10,27 @@ export default async function VerifyEmailPage({ searchParams }: PageProps<"/veri
   const sp = await searchParams;
   const email = typeof sp.email === "string" ? sp.email : "";
   return (
-    <Card className="p-6">
-      <h1 className="text-xl font-semibold">Check your email</h1>
-      <p className="mt-2 text-sm text-slate-600">
-        We sent a verification link to <strong>{email || "your email address"}</strong>. Open it to
-        activate your account. The link expires in one hour. If you don&apos;t see it, check your spam
-        folder.
-      </p>
+    <div className="w-full max-w-[420px]">
+      <AuthHeading title="Check your email">
+        We sent a verification link to <strong className="font-semibold text-ink">{email || "your email address"}</strong>.
+        Open it to activate your account.
+      </AuthHeading>
+      <ol className="mb-6 space-y-2.5 rounded-2xl border border-line bg-paper p-4 text-sm text-ink-soft">
+        {["Open the email from Track-and-Trace.", "Click the verification link. It expires in one hour.", "Come back and log in."].map((t, i) => (
+          <li key={t} className="flex items-start gap-3">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-sand font-display text-xs font-bold text-crimson">
+              {i + 1}
+            </span>
+            <span className="pt-0.5">{t}</span>
+          </li>
+        ))}
+        <li className="pl-9 text-xs text-ink-muted">Can&apos;t find it? Check your spam or promotions folder.</li>
+      </ol>
       <ResendForm email={email} />
-      <p className="mt-6 text-sm">
-        <Link href="/login" className="text-brand-700 hover:underline">
-          Back to log in
-        </Link>
-      </p>
-    </Card>
+      <Link href="/login" className="mt-6 flex items-center justify-center gap-1.5 text-sm font-semibold text-ink-soft hover:text-ink">
+        <ArrowLeft aria-hidden strokeWidth={2} className="size-4" />
+        Back to log in
+      </Link>
+    </div>
   );
 }

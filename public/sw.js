@@ -1,7 +1,7 @@
 // Track-and-Trace service worker: makes the app installable and shows an offline
 // page when there's no connection. Pages are always fetched fresh, because
 // they contain live, per-user data.
-const CACHE = "returndesk-v1";
+const CACHE = "track-and-trace-v2";
 const OFFLINE_URL = "/offline.html";
 
 self.addEventListener("install", (event) => {

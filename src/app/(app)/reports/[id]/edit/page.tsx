@@ -26,8 +26,8 @@ export default async function EditReportPage({ params }: PageProps<"/reports/[id
   const [categories, places] = await Promise.all([categoryOptions(), placeOptions()]);
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <PageHeader title={`Edit report #${report.id}`} />
+    <div className="mx-auto max-w-3xl">
+      <PageHeader eyebrow={`Report #${report.id}`} title={`Edit ${report.itemName}`} description="Update anything that has changed. Fields marked * are required." />
       <ReportForm
         type={report.reportType}
         categories={categories}

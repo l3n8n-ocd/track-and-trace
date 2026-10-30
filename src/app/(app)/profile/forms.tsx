@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
+import { Briefcase, Building2, GraduationCap, Layers, Phone, School, UserRound } from "lucide-react";
+import { PasswordInput } from "@/components/password-input";
 import { SubmitButton } from "@/components/submit-button";
 import { Alert, Field, Input, Select } from "@/components/ui";
 import { useActionForm } from "@/components/use-action-form";
@@ -22,18 +24,18 @@ export function ProfileForm({
       {state.message && <Alert tone="green">{state.message}</Alert>}
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="First name" htmlFor="firstName" error={e.firstName}>
-          <Input id="firstName" name="firstName" defaultValue={defaults.firstName} />
+          <Input id="firstName" name="firstName" icon={UserRound} defaultValue={defaults.firstName} />
         </Field>
         <Field label="Last name" htmlFor="lastName" error={e.lastName}>
-          <Input id="lastName" name="lastName" defaultValue={defaults.lastName} />
+          <Input id="lastName" name="lastName" icon={UserRound} defaultValue={defaults.lastName} />
         </Field>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Contact number" htmlFor="contactNo" error={e.contactNo}>
-          <Input id="contactNo" name="contactNo" defaultValue={defaults.contactNo} />
+          <Input id="contactNo" name="contactNo" icon={Phone} placeholder="e.g. 0917 123 4567" defaultValue={defaults.contactNo} />
         </Field>
         <Field label="College or office" htmlFor="collegeId" error={e.collegeId}>
-          <Select id="collegeId" name="collegeId" defaultValue={defaults.collegeId}>
+          <Select id="collegeId" name="collegeId" icon={Building2} defaultValue={defaults.collegeId}>
             <option value="">Choose…</option>
             {colleges.map((c) => (
               <option key={c.id} value={c.id}>
@@ -46,10 +48,10 @@ export function ProfileForm({
       {role === "student" && (
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="Course / program" htmlFor="course" className="sm:col-span-2">
-            <Input id="course" name="course" defaultValue={defaults.course} />
+            <Input id="course" name="course" icon={GraduationCap} defaultValue={defaults.course} />
           </Field>
           <Field label="Year level" htmlFor="yearLevel">
-            <Select id="yearLevel" name="yearLevel" defaultValue={defaults.yearLevel}>
+            <Select id="yearLevel" name="yearLevel" icon={Layers} defaultValue={defaults.yearLevel}>
               {[1, 2, 3, 4, 5, 6].map((y) => (
                 <option key={y} value={y}>
                   {y}
@@ -62,20 +64,20 @@ export function ProfileForm({
       {role === "faculty" && (
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Department" htmlFor="department">
-            <Input id="department" name="department" defaultValue={defaults.department} />
+            <Input id="department" name="department" icon={School} defaultValue={defaults.department} />
           </Field>
           <Field label="Academic rank" htmlFor="academicRank">
-            <Input id="academicRank" name="academicRank" defaultValue={defaults.academicRank} />
+            <Input id="academicRank" name="academicRank" icon={GraduationCap} defaultValue={defaults.academicRank} />
           </Field>
         </div>
       )}
       {role === "staff" && (
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Office" htmlFor="office">
-            <Input id="office" name="office" defaultValue={defaults.office} />
+            <Input id="office" name="office" icon={Building2} defaultValue={defaults.office} />
           </Field>
           <Field label="Position" htmlFor="position">
-            <Input id="position" name="position" defaultValue={defaults.position} />
+            <Input id="position" name="position" icon={Briefcase} defaultValue={defaults.position} />
           </Field>
         </div>
       )}
@@ -93,14 +95,14 @@ export function PasswordForm() {
     <form action={action} className="space-y-4" noValidate>
       {state.message && <Alert tone="green">{state.message}</Alert>}
       <Field label="Current password" htmlFor="currentPassword" error={e.currentPassword}>
-        <Input id="currentPassword" name="currentPassword" type="password" autoComplete="current-password" />
+        <PasswordInput id="currentPassword" name="currentPassword" autoComplete="current-password" placeholder="Your current password" />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="New password" htmlFor="newPassword" error={e.newPassword}>
-          <Input id="newPassword" name="newPassword" type="password" autoComplete="new-password" />
+          <PasswordInput id="newPassword" name="newPassword" autoComplete="new-password" placeholder="At least 8 characters" />
         </Field>
         <Field label="Confirm new password" htmlFor="confirmPassword" error={e.confirmPassword}>
-          <Input id="confirmPassword" name="confirmPassword" type="password" autoComplete="new-password" />
+          <PasswordInput id="confirmPassword" name="confirmPassword" autoComplete="new-password" placeholder="Type it again" />
         </Field>
       </div>
       <div className="flex justify-end">
@@ -115,7 +117,7 @@ export function DeactivateForm() {
   return (
     <form action={action} className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
       <Field label='Type "DEACTIVATE" to confirm' htmlFor="confirm" error={state.error} className="flex-1">
-        <Input id="confirm" name="confirm" autoComplete="off" />
+        <Input id="confirm" name="confirm" autoComplete="off" placeholder="DEACTIVATE" />
       </Field>
       <SubmitButton variant="danger" pendingText="…">
         Deactivate my account

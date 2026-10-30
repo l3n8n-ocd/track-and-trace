@@ -1,28 +1,41 @@
 import Link from "next/link";
-import { and, count, eq } from "drizzle-orm";
-import { logoutAction } from "@/app/(auth)/actions";
+import { and, count, eq, inArray } from "drizzle-orm";
+import { ArrowLeftRight, Bell, LogOut, Search } from "lucide-react";
 import { db, schema } from "@/db";
 import type { SessionUser } from "@/lib/session";
 import { Logo } from "./logo";
-import { MobileMenu, NavLinks, type NavItem } from "./nav-links";
+import { LogoutButton } from "./logout-button";
+import { MobileNav, Sidebar, type NavCounts } from "./nav-links";
+import { Avatar, ICON_STROKE, cn } from "./ui";
 
-const USER_NAV: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/search", label: "Search items" },
-  { href: "/reports", label: "My reports" },
-  { href: "/matches", label: "Matches" },
-  { href: "/claims", label: "My claims" },
-];
+const ROLE_LABEL = { student: "Student", faculty: "Faculty", staff: "Staff", admin: "Administrator" } as const;
 
-const ADMIN_NAV: NavItem[] = [
-  { href: "/admin", label: "Overview", exact: true },
-  { href: "/admin/reports", label: "Reports" },
-  { href: "/admin/claims", label: "Claims" },
-  { href: "/admin/users", label: "Users" },
-  { href: "/admin/announcements", label: "Announcements" },
-  { href: "/admin/records", label: "Records" },
-  { href: "/admin/settings", label: "Settings" },
-];
+async function navCounts(user: SessionUser, section: "user" | "admin", unread: number): Promise<NavCounts> {
+  if (section === "admin") {
+    const [[reports], [claims]] = await Promise.all([
+      db.select({ value: count() }).from(schema.report).where(eq(schema.report.status, "PENDING")),
+      db.select({ value: count() }).from(schema.claim).where(eq(schema.claim.claimStatus, "PENDING")),
+    ]);
+    return {
+      "/admin/reports": { value: reports.value, urgent: true },
+      "/admin/claims": { value: claims.value, urgent: true },
+    };
+  }
+  const myLost = db
+    .select({ id: schema.report.id })
+    .from(schema.report)
+    .where(and(eq(schema.report.userId, user.id), eq(schema.report.reportType, "LOST")));
+  const [[matches]] = await Promise.all([
+    db
+      .select({ value: count() })
+      .from(schema.matchRecord)
+      .where(and(eq(schema.matchRecord.matchStatus, "PENDING_VERIFICATION"), inArray(schema.matchRecord.lostReportId, myLost))),
+  ]);
+  return {
+    "/notifications": { value: unread },
+    "/matches": { value: matches.value, urgent: true },
+  };
+}
 
 export async function AppShell({
   user,
@@ -37,77 +50,91 @@ export async function AppShell({
     .select({ value: count() })
     .from(schema.notification)
     .where(and(eq(schema.notification.userId, user.id), eq(schema.notification.isRead, false)));
+  const counts = await navCounts(user, section, unread);
 
-  const items = section === "admin" ? ADMIN_NAV : USER_NAV;
   const switchLink =
     user.role === "admin"
       ? section === "admin"
-        ? { href: "/dashboard", label: "User view" }
-        : { href: "/admin", label: "Admin panel" }
+        ? { href: "/dashboard", label: "Switch to user view" }
+        : { href: "/admin", label: "Switch to admin console" }
       : null;
+  const fullName = `${user.firstName} ${user.lastName ?? ""}`.trim();
 
-  const accountLinks = (
-    <div className="flex flex-col gap-1 border-t border-slate-200 pt-3 text-sm">
+  const row = "flex h-11 w-full items-center gap-3 rounded-2xl px-3 text-[15px] font-medium transition-colors";
+  const accountCard = (
+    <div className="space-y-1 border-t border-white/10 pt-3">
       {switchLink && (
-        <Link href={switchLink.href} className="rounded-md px-3 py-2 font-medium text-brand-700">
+        <Link href={switchLink.href} className={cn(row, "text-cream/75 hover:bg-white/[0.05] hover:text-cream")}>
+          <ArrowLeftRight aria-hidden strokeWidth={ICON_STROKE} className="size-5 text-cream/50" />
           {switchLink.label}
         </Link>
       )}
-      <Link href="/profile" className="rounded-md px-3 py-2 text-slate-700">
-        Profile
+      <Link href="/profile" className={cn(row, "h-14 text-cream hover:bg-white/[0.05]")}>
+        <Avatar name={fullName} className="size-8 bg-cream text-[11px] text-oxblood ring-0" />
+        <span className="min-w-0 text-left">
+          <span className="block truncate text-sm font-semibold">{fullName}</span>
+          <span className="block truncate text-xs text-cream/55">{ROLE_LABEL[user.role]} · View profile</span>
+        </span>
       </Link>
-      <form action={logoutAction}>
-        <button className="w-full rounded-md px-3 py-2 text-left text-slate-700">Log out</button>
-      </form>
+      <LogoutButton className={cn(row, "text-amber hover:bg-white/[0.05]")}>
+        <LogOut aria-hidden strokeWidth={ICON_STROKE} className="size-5" />
+        Log out
+      </LogoutButton>
+      <p className="px-3 pt-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-cream/35">Track · Match · Return</p>
     </div>
   );
 
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
-        <div className="relative mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
-          <div className="flex items-center gap-6">
-            <Logo href={section === "admin" ? "/admin" : "/dashboard"} compact={section === "admin"} />
-            {section === "admin" && (
-              <span className="hidden rounded bg-gold-400 px-2 py-0.5 text-xs font-semibold text-slate-900 sm:inline">
-                ADMIN
-              </span>
-            )}
-            <NavLinks items={items} />
-          </div>
-          <div className="flex items-center gap-1">
-            <Link
-              href="/notifications"
-              className="relative rounded-md p-2 text-slate-700 hover:bg-slate-100"
-              aria-label={`Notifications${unread ? ` (${unread} unread)` : ""}`}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" />
-              </svg>
-              {unread > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-brand-600 px-1 text-center text-[11px] font-semibold leading-5 text-white">
-                  {unread > 99 ? "99+" : unread}
-                </span>
+      <Sidebar section={section} counts={counts} footer={accountCard} />
+      <div className="flex min-h-full flex-1 flex-col lg:pl-[280px]">
+        <header className="sticky top-0 z-20 border-b border-line bg-cream">
+          <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
+            <div className="flex items-center gap-2 lg:hidden">
+              <MobileNav section={section} counts={counts} footer={accountCard} />
+              <Logo href={section === "admin" ? "/admin" : "/dashboard"} className="[&_span]:text-[15px]" />
+            </div>
+            <p className="hidden text-sm text-ink-muted lg:block">
+              {section === "admin" ? (
+                <>
+                  <span className="font-semibold text-ink">Admin console</span> · Bulacan State University – Main Campus
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold text-ink">Lost and Found</span> · Bulacan State University – Main Campus
+                </>
               )}
-            </Link>
-            <div className="hidden items-center gap-1 whitespace-nowrap xl:flex">
-              {switchLink && (
-                <Link href={switchLink.href} className="rounded-md px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50">
-                  {switchLink.label}
+            </p>
+            <div className="flex items-center gap-1.5">
+              {section === "user" && (
+                <Link
+                  href="/search"
+                  className="hidden h-10 items-center gap-2 rounded-xl border border-line bg-paper pl-3 pr-4 text-sm text-ink-muted hover:border-line-strong hover:text-ink sm:flex"
+                >
+                  <Search aria-hidden strokeWidth={ICON_STROKE} className="size-[18px]" />
+                  Search found items
                 </Link>
               )}
-              <Link href="/profile" className="rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100">
-                {user.firstName}
+              <Link
+                href="/notifications"
+                className="relative flex size-10 items-center justify-center rounded-xl text-ink hover:bg-sand"
+                aria-label={`Notifications${unread ? ` (${unread} unread)` : ""}`}
+              >
+                <Bell aria-hidden strokeWidth={ICON_STROKE} className="size-[21px]" />
+                {unread > 0 && (
+                  <span className="absolute right-0.5 top-0.5 min-w-5 rounded-full bg-crimson px-1 text-center text-[11px] font-bold leading-5 text-cream ring-2 ring-cream">
+                    {unread > 99 ? "99+" : unread}
+                  </span>
+                )}
               </Link>
-              <form action={logoutAction}>
-                <button className="rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100">Log out</button>
-              </form>
+              <Link href="/profile" aria-label="Profile" className="rounded-full p-0.5 hover:ring-2 hover:ring-line-strong">
+                <Avatar name={fullName} />
+              </Link>
             </div>
-            <MobileMenu items={items} footer={accountLinks} />
           </div>
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-8">{children}</main>
+        </header>
+        <main className={cn("mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-10")}>{children}</main>
+      </div>
     </>
   );
 }

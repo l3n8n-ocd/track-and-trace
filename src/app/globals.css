@@ -1,16 +1,65 @@
 @import "tailwindcss";
 
+/*
+ * Track-and-Trace design tokens.
+ *
+ * Palette (brand):   oxblood #670001 · crimson #8C001B · berry #9A0034
+ *                    rust #C6480D · amber #FF9002 · cream #F5F5ED
+ * Ink is a warm near-black so text sits on cream without looking harsh.
+ * Every tint below is the brand color mixed into cream, which keeps the
+ * whole interface in one warm family.
+ */
 @theme {
-  --color-brand-50: #fef2f2;
-  --color-brand-100: #fee2e2;
-  --color-brand-200: #fecaca;
-  --color-brand-500: #dc2626;
-  --color-brand-600: #b91c1c;
-  --color-brand-700: #991b1b;
-  --color-brand-800: #7f1d1d;
-  --color-gold-400: #fbbf24;
-  --color-gold-500: #f59e0b;
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --color-oxblood: #670001;
+  --color-oxblood-deep: #3d0001;
+  --color-crimson: #8c001b;
+  --color-berry: #9a0034;
+  --color-rust: #c6480d;
+  --color-amber: #ff9002;
+  --color-cream: #f5f5ed;
+
+  --color-ink: #1f1718;
+  /* Warm near-black for the navigation panel. */
+  --color-night: #2a1517;
+  --color-ink-soft: #4a3f40;
+  --color-ink-muted: #6b5f60;
+  --color-ink-faint: #9a8f8c;
+
+  --color-paper: #fcfcf8;
+  --color-sand: #ecebe1;
+  --color-line: #e2dfd3;
+  --color-line-strong: #cdc7b8;
+
+  --color-crimson-tint: #f4e3e1;
+  --color-berry-tint: #f5e1e5;
+  --color-rust-tint: #f8e6d8;
+  --color-amber-tint: #fff0d9;
+  --color-amber-deep: #8a3a05;
+
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-archivo), var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+
+  --animate-rise: rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-fade: fade 0.3s ease-out both;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 }
 
 :root {
@@ -18,12 +67,168 @@
 }
 
 body {
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-feature-settings: "ss01", "cv11";
 }
 
-/* Visible keyboard focus everywhere (usability / WCAG 2.1 AA). */
+@layer base {
+  /* Archivo is loaded with its width axis; headings run slightly wide,
+     like the printed labels on a claim tag. */
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    font-stretch: 108%;
+    letter-spacing: -0.012em;
+  }
+
+  ::selection {
+    background: var(--color-amber);
+    color: var(--color-ink);
+  }
+}
+
+/* Visible keyboard focus everywhere (usability / WCAG 2.1 AA). Form
+   fields show focus with their own border instead (see fieldClass). */
 :focus-visible {
-  outline: 2px solid var(--color-brand-600);
+  outline: 2px solid var(--color-amber);
   outline-offset: 2px;
+}
+input:not([type="checkbox"], [type="radio"], [type="file"]):focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
+/* Extra-wide display cut for the project name. */
+@utility stretch-wide {
+  font-stretch: 125%;
+}
+
+/* The brand gradient: oxblood shadows warming to amber, like the light
+   through a frosted window. Pair with .noise to keep it from banding. */
+@utility bg-ember {
+  background-color: var(--color-oxblood);
+  background-image:
+    radial-gradient(110% 75% at 92% 108%, rgb(255 144 2 / 0.95) 0%, rgb(255 144 2 / 0) 58%),
+    radial-gradient(85% 70% at 8% 96%, rgb(198 72 13 / 0.9) 0%, rgb(198 72 13 / 0) 62%),
+    radial-gradient(75% 60% at 78% 6%, rgb(154 0 52 / 0.85) 0%, rgb(154 0 52 / 0) 64%),
+    linear-gradient(162deg, #2a0001 0%, #670001 42%, #8c001b 100%);
+}
+
+/* A calmer version for banners that carry a lot of text. */
+@utility bg-ember-soft {
+  background-color: var(--color-oxblood);
+  background-image:
+    radial-gradient(70% 140% at 100% 100%, rgb(255 144 2 / 0.7) 0%, rgb(255 144 2 / 0) 60%),
+    radial-gradient(60% 120% at 72% 0%, rgb(198 72 13 / 0.55) 0%, rgb(198 72 13 / 0) 62%),
+    linear-gradient(105deg, #3d0001 0%, #670001 45%, #8c001b 100%);
+}
+
+/* Fluted-glass vertical bands, laid over the ember gradient. */
+@utility fluted {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0.025) 0px,
+    rgb(0 0 0 / 0.05) 34px,
+    rgb(255 255 255 / 0.02) 68px
+  );
+}
+
+/* Film grain. Put on an absolutely positioned layer above a gradient. */
+@utility noise {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+  mix-blend-mode: overlay;
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+/* Shape of the LOST / FOUND type tag: a luggage tag pointing left. */
+@utility tag-shape {
+  clip-path: polygon(7px 0, 100% 0, 100% 100%, 7px 100%, 0 50%);
+}
+
+@keyframes trace-dash {
+  to {
+    stroke-dashoffset: -40;
+  }
+}
+@keyframes ping-soft {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(var(--r, 0deg));
+  }
+  50% {
+    transform: translate3d(0, -10px, 0) rotate(calc(var(--r, 0deg) + 3deg));
+  }
+}
+@keyframes swing {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-trace {
+  animation: trace-dash 1.6s linear infinite;
+}
+.animate-ping-soft {
+  animation: ping-soft 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+.animate-drift {
+  animation: drift 7s ease-in-out infinite;
+}
+.animate-swing {
+  transform-origin: 50% 0;
+  animation: swing 5s ease-in-out infinite;
+}
+.animate-marquee {
+  animation: marquee 48s linear infinite;
+}
+
+/* Elements revealed on scroll start hidden only when JS has marked them. */
+[data-reveal] {
+  transition:
+    opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+[data-reveal="hidden"] {
+  opacity: 0;
+  transform: translateY(18px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  [data-reveal="hidden"] {
+    opacity: 1;
+    transform: none;
+  }
 }

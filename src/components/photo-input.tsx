@@ -1,6 +1,8 @@
 "use client";
 
+import { CircleAlert, FileText, ImagePlus, LoaderCircle, Plus, X } from "lucide-react";
 import { useRef, useState } from "react";
+import { ICON_STROKE } from "./ui";
 
 const MAX_DIMENSION = 1600;
 const QUALITY = 0.8;
@@ -46,7 +48,11 @@ export function PhotoInput({
     setFiles(next);
     const dt = new DataTransfer();
     next.forEach((f) => dt.items.add(f.file));
-    if (hidden.current) hidden.current.files = dt.files;
+    if (hidden.current) {
+      hidden.current.files = dt.files;
+      // Lets the form's step tracker see the new files.
+      hidden.current.dispatchEvent(new Event("change", { bubbles: true }));
+    }
   }
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
@@ -73,45 +79,71 @@ export function PhotoInput({
     sync([...files, ...processed]);
   }
 
+  const pickerAccept = allowPdf ? `${accept},application/pdf` : accept;
+  const picker = (
+    <input type="file" accept={pickerAccept} multiple onChange={onPick} className="sr-only" disabled={busy} />
+  );
+
   return (
     <div className="space-y-2">
       <input ref={hidden} type="file" name={name} multiple className="hidden" tabIndex={-1} aria-hidden />
-      <div className="flex flex-wrap gap-2">
-        {files.map((f, i) => (
-          <div key={i} className="relative h-20 w-20 overflow-hidden rounded-md bg-slate-100 ring-1 ring-slate-200">
-            {f.preview ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={f.preview} alt="" className="h-full w-full object-cover" />
+      {files.length === 0 ? (
+        <label className="group flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-line-strong bg-cream/60 px-4 py-7 text-center transition-colors hover:border-crimson/50 hover:bg-crimson-tint/40 focus-within:border-crimson">
+          <span className="flex size-11 items-center justify-center rounded-xl bg-paper text-crimson ring-1 ring-line transition-transform group-hover:-translate-y-0.5">
+            {busy ? (
+              <LoaderCircle aria-hidden strokeWidth={ICON_STROKE} className="size-5 animate-spin" />
             ) : (
-              <span className="flex h-full items-center justify-center p-1 text-center text-[10px] text-slate-600">
-                {f.file.name}
-              </span>
+              <ImagePlus aria-hidden strokeWidth={ICON_STROKE} className="size-5" />
             )}
-            <button
-              type="button"
-              onClick={() => sync(files.filter((_, j) => j !== i))}
-              className="absolute right-0.5 top-0.5 rounded-full bg-black/60 px-1.5 text-xs text-white"
-              aria-label="Remove file"
-            >
-              ×
-            </button>
-          </div>
-        ))}
-        {files.length < max && (
-          <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-slate-300 bg-white text-center text-xs text-slate-600 hover:bg-slate-50">
-            <span className="text-xl leading-none">+</span>
-            {busy ? "Processing…" : label}
-            <input
-              type="file"
-              accept={allowPdf ? `${accept},application/pdf` : accept}
-              multiple
-              onChange={onPick}
-              className="sr-only"
-            />
-          </label>
-        )}
-      </div>
-      {error && <p className="text-xs text-brand-700">{error}</p>}
+          </span>
+          <span className="text-sm font-semibold text-ink">{busy ? "Processing…" : label}</span>
+          <span className="text-xs text-ink-muted">
+            JPG, PNG or WebP{allowPdf ? " · PDF" : ""} · up to {max} files, resized automatically
+          </span>
+          {picker}
+        </label>
+      ) : (
+        <div className="flex flex-wrap gap-3">
+          {files.map((f, i) => (
+            <div key={i} className="relative size-24 overflow-hidden rounded-xl bg-sand ring-1 ring-line animate-fade">
+              {f.preview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={f.preview} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <span className="flex h-full flex-col items-center justify-center gap-1 p-2 text-center text-[10px] text-ink-soft">
+                  <FileText aria-hidden strokeWidth={ICON_STROKE} className="size-5 text-crimson" />
+                  <span className="line-clamp-2 break-all">{f.file.name}</span>
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => sync(files.filter((_, j) => j !== i))}
+                className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-ink/75 text-cream hover:bg-ink"
+                aria-label="Remove file"
+              >
+                <X aria-hidden strokeWidth={2.5} className="size-3.5" />
+              </button>
+            </div>
+          ))}
+          {files.length < max && (
+            <label className="flex size-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-line-strong bg-cream/60 text-center text-xs font-medium text-ink-soft hover:border-crimson/50 hover:text-crimson">
+              {busy ? (
+                <LoaderCircle aria-hidden strokeWidth={ICON_STROKE} className="size-5 animate-spin" />
+              ) : (
+                <Plus aria-hidden strokeWidth={ICON_STROKE} className="size-5" />
+              )}
+              {busy ? "Processing…" : "Add more"}
+              {picker}
+            </label>
+          )}
+        </div>
+      )}
+      {error && (
+        <p className="flex items-center gap-1.5 text-[13px] font-medium text-berry">
+          <CircleAlert aria-hidden strokeWidth={ICON_STROKE} className="size-4" />
+          {error}
+        </p>
+      )}
     </div>
   );
 }

@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { count, desc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
+import { BadgeCheck, FileText, Inbox, MailWarning, UserCheck, UserX } from "lucide-react";
 import { Flash } from "@/components/flash";
 import { ClaimStatusBadge, ReportStatusBadge, TypeBadge } from "@/components/status-badge";
 import { SubmitButton } from "@/components/submit-button";
-import { Badge, Card, DetailList, PageHeader } from "@/components/ui";
+import { Avatar, Badge, Card, CardEmpty, CardHeader, DetailList } from "@/components/ui";
 import { db, schema } from "@/db";
 import { formatDate } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
@@ -13,6 +14,8 @@ import { loadProfile } from "@/server/profile";
 import { setUserStatusAction } from "../../actions";
 
 export const metadata: Metadata = { title: "User" };
+
+const ROLE_LABEL = { student: "Student", faculty: "Faculty", staff: "Staff", admin: "Administrator" } as const;
 
 export default async function AdminUserPage({ params, searchParams }: PageProps<"/admin/users/[id]">) {
   const admin = await requireAdmin();
@@ -44,20 +47,45 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
           ? [["Office", profile.administrator.office], ["Admin level", profile.administrator.adminLevel]]
           : [];
 
+  const active = user.status === "ACTIVE";
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={user.name}
-        description={
-          <span className="flex items-center gap-2 capitalize">
-            {user.role} {user.status === "DEACTIVATED" && <Badge tone="red">Deactivated</Badge>}
-          </span>
-        }
-      />
       <Flash sp={sp} />
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+      <Card className="p-0 sm:p-0">
+        <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-6">
+          <Avatar name={user.name} className="size-16 text-lg" />
+          <div className="min-w-0 flex-1">
+            <Link href="/admin/users" className="text-xs font-semibold uppercase tracking-[0.14em] text-rust hover:text-oxblood">
+              Users
+            </Link>
+            <h1 className="text-2xl font-bold text-ink sm:text-[28px]">{user.name}</h1>
+            <p className="mt-1.5 flex flex-wrap items-center gap-2">
+              <Badge tone={user.role === "admin" ? "amber" : "gray"}>{ROLE_LABEL[user.role]}</Badge>
+              {!active ? (
+                <Badge tone="red" icon={UserX}>Deactivated</Badge>
+              ) : user.emailVerified ? (
+                <Badge tone="green" icon={BadgeCheck}>Active</Badge>
+              ) : (
+                <Badge tone="amber" icon={MailWarning}>Unverified email</Badge>
+              )}
+            </p>
+          </div>
+          {user.id !== admin.id && (
+            <form action={setUserStatusAction.bind(null, user.id)} className="sm:text-right">
+              <input type="hidden" name="status" value={active ? "DEACTIVATED" : "ACTIVE"} />
+              <SubmitButton variant={active ? "danger" : "success"}>
+                {active ? <UserX aria-hidden /> : <UserCheck aria-hidden />}
+                {active ? "Deactivate account" : "Reactivate account"}
+              </SubmitButton>
+              <p className="mt-1.5 text-xs text-ink-muted">
+                {active ? "They're signed out; records are kept." : "Restores their access."}
+              </p>
+            </form>
+          )}
+        </div>
+        <div className="border-t border-line p-5 sm:p-6">
           <DetailList
+            columns={3}
             items={[
               ["Email", `${user.email}${user.emailVerified ? "" : " (not verified)"}`],
               ["ID number", user.idNumber],
@@ -68,53 +96,47 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
               ["Logged actions", String(logs.value)],
             ]}
           />
-        </Card>
-        {user.id !== admin.id && (
-          <Card>
-            <h2 className="font-semibold">Account status</h2>
-            <form action={setUserStatusAction.bind(null, user.id)} className="mt-3">
-              <input type="hidden" name="status" value={user.status === "ACTIVE" ? "DEACTIVATED" : "ACTIVE"} />
-              <SubmitButton variant={user.status === "ACTIVE" ? "danger" : "success"} className="w-full">
-                {user.status === "ACTIVE" ? "Deactivate account" : "Reactivate account"}
-              </SubmitButton>
-              <p className="mt-2 text-xs text-slate-500">
-                Deactivated users are signed out and can&apos;t log in. Their records are kept.
-              </p>
-            </form>
-          </Card>
-        )}
-      </div>
+        </div>
+      </Card>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <h2 className="font-semibold">Reports</h2>
-          <ul className="mt-3 divide-y divide-slate-100 text-sm">
-            {reports.length === 0 && <li className="py-2 text-slate-600">None</li>}
-            {reports.map((r) => (
-              <li key={r.id} className="flex items-center justify-between gap-2 py-2">
-                <Link href={`/admin/reports/${r.id}`} className="text-brand-700 hover:underline">
-                  #{r.id} {r.itemName}
-                </Link>
-                <span className="flex gap-1">
-                  <TypeBadge type={r.reportType} />
-                  <ReportStatusBadge status={r.status} />
-                </span>
-              </li>
-            ))}
-          </ul>
+          <CardHeader icon={FileText} title="Reports" description={`${reports.length} most recent`} />
+          {reports.length === 0 ? (
+            <CardEmpty>None yet.</CardEmpty>
+          ) : (
+            <ul className="-mx-2 divide-y divide-line">
+              {reports.map((r) => (
+                <li key={r.id}>
+                  <Link href={`/admin/reports/${r.id}`} className="flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-sand/60">
+                    <TypeBadge type={r.reportType} />
+                    <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
+                      #{r.id} {r.itemName}
+                    </span>
+                    <ReportStatusBadge status={r.status} size="sm" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
         <Card>
-          <h2 className="font-semibold">Claims</h2>
-          <ul className="mt-3 divide-y divide-slate-100 text-sm">
-            {claims.length === 0 && <li className="py-2 text-slate-600">None</li>}
-            {claims.map(({ claim, itemName }) => (
-              <li key={claim.id} className="flex items-center justify-between gap-2 py-2">
-                <Link href={`/admin/claims/${claim.id}`} className="text-brand-700 hover:underline">
-                  #{claim.id} {itemName}
-                </Link>
-                <ClaimStatusBadge status={claim.claimStatus} />
-              </li>
-            ))}
-          </ul>
+          <CardHeader icon={Inbox} title="Claims" description={`${claims.length} most recent`} />
+          {claims.length === 0 ? (
+            <CardEmpty>None yet.</CardEmpty>
+          ) : (
+            <ul className="-mx-2 divide-y divide-line">
+              {claims.map(({ claim, itemName }) => (
+                <li key={claim.id}>
+                  <Link href={`/admin/claims/${claim.id}`} className="flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-sand/60">
+                    <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
+                      #{claim.id} {itemName}
+                    </span>
+                    <ClaimStatusBadge status={claim.claimStatus} size="sm" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       </div>
     </div>

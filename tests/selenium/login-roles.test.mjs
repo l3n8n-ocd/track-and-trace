@@ -62,7 +62,7 @@ test("a student logs in and lands on the dashboard", () =>
   step("student-login", async () => {
     await logIn(STUDENT.email, STUDENT.password);
     await driver.wait(until.urlContains("/dashboard"), WAIT);
-    await driver.wait(textOnPage("Hi, API"), WAIT);
+    await driver.wait(textOnPage(", API."), WAIT);
   }));
 
 test("a student who opens /admin is sent back to the dashboard", () =>
@@ -76,5 +76,5 @@ test("an administrator logs in and sees the admin overview", { skip: !ADMIN.emai
   step("admin-login", async () => {
     await logIn(ADMIN.email, ADMIN.password);
     await driver.wait(until.urlContains("/admin"), WAIT);
-    await driver.wait(textOnPage("Today's work for the Lost and Found Office."), WAIT);
+    await driver.wait(textOnPage("Claims to review"), WAIT);
   }));

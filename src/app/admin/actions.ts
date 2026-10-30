@@ -18,9 +18,17 @@ import { notify } from "@/server/notify";
 // Admin actions redirect back to the page with ?msg= or ?error=, which the
 // page shows as an alert.
 function back(path: string, result: { msg?: string; error?: string }): never {
-  const qs = new URLSearchParams(result as Record<string, string>).toString();
-  revalidatePath(path);
-  redirect(`${path}?${qs}`);
+  const [base, query] = path.split("?");
+  const params = new URLSearchParams(query);
+  for (const [k, v] of Object.entries(result)) if (v) params.set(k, v);
+  revalidatePath(base);
+  redirect(`${base}?${params}`);
+}
+
+// Settings forms post the tab they're on, so the page reopens there.
+function settingsPath(formData?: FormData) {
+  const tab = formData ? String(formData.get("tab") ?? "") : "";
+  return /^[a-z]+$/.test(tab) ? `/admin/settings?tab=${tab}` : "/admin/settings";
 }
 
 const text = (formData: FormData, key: string) => String(formData.get(key) ?? "").trim();
@@ -200,40 +208,40 @@ export async function addCategoryAction(formData: FormData) {
   const admin = await requireAdmin();
   const name = text(formData, "name");
   const parentId = num(formData, "parentId") || null;
-  if (name.length < 2) back("/admin/settings", { error: "Enter a category name." });
+  if (name.length < 2) back(settingsPath(formData), { error: "Enter a category name." });
   const [res] = await db.insert(schema.category).values({ name, parentId });
   await logActivity(admin.id, "Added category", "category", res.insertId, name);
-  back("/admin/settings", { msg: `Category "${name}" added.` });
+  back(settingsPath(formData), { msg: `Category "${name}" added.` });
 }
 
 export async function renameCategoryAction(categoryId: number, formData: FormData) {
   const admin = await requireAdmin();
   const name = text(formData, "name");
-  if (name.length < 2) back("/admin/settings", { error: "Enter a category name." });
+  if (name.length < 2) back(settingsPath(formData), { error: "Enter a category name." });
   await db.update(schema.category).set({ name }).where(eq(schema.category.id, categoryId));
   await logActivity(admin.id, "Renamed category", "category", categoryId, name);
-  back("/admin/settings", { msg: "Category renamed." });
+  back(settingsPath(formData), { msg: "Category renamed." });
 }
 
-export async function deleteCategoryAction(categoryId: number) {
+export async function deleteCategoryAction(categoryId: number, formData?: FormData) {
   const admin = await requireAdmin();
   const [[used], [children]] = await Promise.all([
     db.select({ value: count() }).from(schema.report).where(eq(schema.report.categoryId, categoryId)),
     db.select({ value: count() }).from(schema.category).where(eq(schema.category.parentId, categoryId)),
   ]);
   if (used.value || children.value) {
-    back("/admin/settings", { error: "This category has reports or subcategories, so it can't be deleted." });
+    back(settingsPath(formData), { error: "This category has reports or subcategories, so it can't be deleted." });
   }
   await db.delete(schema.category).where(eq(schema.category.id, categoryId));
   await logActivity(admin.id, "Deleted category", "category", categoryId);
-  back("/admin/settings", { msg: "Category deleted." });
+  back(settingsPath(formData), { msg: "Category deleted." });
 }
 
 export async function addLocationAction(formData: FormData) {
   const admin = await requireAdmin();
   const isStorage = formData.get("isStorage") === "1";
   const buildingName = text(formData, "buildingName");
-  if (buildingName.length < 2) back("/admin/settings", { error: "Enter a building or place name." });
+  if (buildingName.length < 2) back(settingsPath(formData), { error: "Enter a building or place name." });
   const [res] = await db.insert(schema.location).values({
     buildingName,
     areaDescription: text(formData, "areaDescription") || null,
@@ -242,27 +250,27 @@ export async function addLocationAction(formData: FormData) {
     isStorage,
   });
   await logActivity(admin.id, isStorage ? "Added storage location" : "Added place", "location", res.insertId, buildingName);
-  back("/admin/settings", { msg: isStorage ? "Storage location added." : "Place added." });
+  back(settingsPath(formData), { msg: isStorage ? "Storage location added." : "Place added." });
 }
 
-export async function toggleLocationAction(locationId: number) {
+export async function toggleLocationAction(locationId: number, formData?: FormData) {
   const admin = await requireAdmin();
   const loc = await db.query.location.findFirst({ where: eq(schema.location.id, locationId) });
-  if (!loc) back("/admin/settings", { error: "Location not found." });
+  if (!loc) back(settingsPath(formData), { error: "Location not found." });
   await db.update(schema.location).set({ isActive: !loc.isActive }).where(eq(schema.location.id, locationId));
   await logActivity(admin.id, loc.isActive ? "Hid location" : "Restored location", "location", locationId);
-  back("/admin/settings", { msg: loc.isActive ? "Location hidden from forms." : "Location restored." });
+  back(settingsPath(formData), { msg: loc.isActive ? "Location hidden from forms." : "Location restored." });
 }
 
 export async function addCollegeAction(formData: FormData) {
   const admin = await requireAdmin();
   const name = text(formData, "name");
-  if (name.length < 3) back("/admin/settings", { error: "Enter a college or office name." });
+  if (name.length < 3) back(settingsPath(formData), { error: "Enter a college or office name." });
   const exists = await db.query.college.findFirst({ where: eq(schema.college.name, name) });
-  if (exists) back("/admin/settings", { error: "That college already exists." });
+  if (exists) back(settingsPath(formData), { error: "That college already exists." });
   const [res] = await db.insert(schema.college).values({ name });
   await logActivity(admin.id, "Added college", "college", res.insertId, name);
-  back("/admin/settings", { msg: "College added." });
+  back(settingsPath(formData), { msg: "College added." });
 }
 
 // ---------------------------------------------------------------------------

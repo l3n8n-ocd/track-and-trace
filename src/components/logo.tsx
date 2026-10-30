@@ -1,14 +1,47 @@
 import Link from "next/link";
+import { cn } from "./ui";
 
-// `compact` hides the name on wide screens, where the admin navigation needs
-// the room; below that width the navigation collapses into a menu.
-export function Logo({ href = "/", compact = false }: { href?: string; compact?: boolean }) {
+// Set to true if the SVG files already include the "Track-and-Trace" name,
+// so the text beside the mark isn't shown twice.
+const LOGO_HAS_WORDMARK = false;
+
+// `tone="light"` uses the white logo, for the ember gradient and other dark
+// backgrounds. `compact` shows the mark only.
+export function Logo({
+  href = "/",
+  tone = "dark",
+  compact = false,
+  className,
+}: {
+  href?: string;
+  tone?: "dark" | "light";
+  compact?: boolean;
+  className?: string;
+}) {
+  const light = tone === "light";
   return (
-    <Link href={href} className="flex shrink-0 items-center gap-2 whitespace-nowrap font-semibold text-slate-900">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-600 text-sm font-bold text-white">
-        TT
-      </span>
-      <span className={`text-lg tracking-tight${compact ? " xl:sr-only" : ""}`}>Track-and-Trace</span>
+    <Link
+      href={href}
+      aria-label="Track-and-Trace home"
+      className={cn("group flex shrink-0 items-center gap-2.5 whitespace-nowrap", className)}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={light ? "/Track-and-Trace-logoW.svg" : "/Track-and-Trace-logo.svg"}
+        alt=""
+        className="h-9 w-auto shrink-0 transition-transform duration-300 group-hover:-rotate-6"
+      />
+      {!LOGO_HAS_WORDMARK && !compact && (
+        <span
+          className={cn(
+            "font-display text-[17px] font-bold leading-none tracking-tight",
+            light ? "text-cream" : "text-ink",
+          )}
+          style={{ fontStretch: "115%" }}
+        >
+          Track<span className={light ? "text-amber" : "text-crimson"}>-and-</span>Trace
+        </span>
+      )}
     </Link>
   );
 }

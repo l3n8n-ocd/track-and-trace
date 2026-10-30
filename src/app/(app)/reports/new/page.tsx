@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PageHeader, cn } from "@/components/ui";
+import { HandHelping, SearchX } from "lucide-react";
+import { ICON_STROKE, PageHeader, cn } from "@/components/ui";
 import { todayPH } from "@/lib/format";
 import { requireUser } from "@/lib/session";
 import { categoryOptions, placeOptions } from "@/server/options";
@@ -14,26 +15,36 @@ export default async function NewReportPage({ searchParams }: PageProps<"/report
   const sp = await searchParams;
   const type = sp.type === "found" ? "FOUND" : "LOST";
   const [categories, places] = await Promise.all([categoryOptions(), placeOptions()]);
-  const tab = (t: "lost" | "found", label: string) => (
-    <Link
-      href={`/reports/new?type=${t}`}
-      className={cn(
-        "flex-1 rounded-md px-4 py-2 text-center text-sm font-medium",
-        (t === "found") === (type === "FOUND") ? "bg-white text-brand-700 shadow-sm" : "text-slate-600",
-      )}
-    >
-      {label}
-    </Link>
-  );
+  const tab = (t: "lost" | "found", label: string, sub: string) => {
+    const active = (t === "found") === (type === "FOUND");
+    const Icon = t === "lost" ? SearchX : HandHelping;
+    return (
+      <Link
+        href={`/reports/new?type=${t}`}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "flex flex-1 items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors",
+          active ? "bg-oxblood text-cream" : "text-ink-soft hover:bg-sand",
+        )}
+      >
+        <Icon aria-hidden strokeWidth={ICON_STROKE} className={cn("size-5 shrink-0", active ? "text-amber" : "text-crimson")} />
+        <span>
+          <span className="block text-sm font-semibold">{label}</span>
+          <span className={cn("block text-xs", active ? "text-cream/70" : "text-ink-muted")}>{sub}</span>
+        </span>
+      </Link>
+    );
+  };
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-3xl">
       <PageHeader
+        eyebrow="New report"
         title={type === "LOST" ? "Report a lost item" : "Report a found item"}
-        description="Fields marked * are required."
+        description="Three short steps. Fields marked * are required."
       />
-      <div className="mb-6 flex gap-1 rounded-lg bg-slate-100 p-1">
-        {tab("lost", "I lost something")}
-        {tab("found", "I found something")}
+      <div className="mb-4 flex gap-1 rounded-2xl border border-line bg-paper p-1.5">
+        {tab("lost", "I lost something", "Get alerted when it turns up")}
+        {tab("found", "I found something", "Help it get back to its owner")}
       </div>
       <ReportForm
         key={type}

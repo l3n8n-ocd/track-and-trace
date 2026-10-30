@@ -1,7 +1,8 @@
 import "server-only";
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { db, schema } from "@/db";
+import type { ClaimStatus } from "@/db/schema";
 
 // Relations are loaded with plain joins and IN queries rather than Drizzle's
 // relational query builder, whose LATERAL/derived-table SQL isn't supported
@@ -54,6 +55,43 @@ export async function proofsFor(claimIds: number[]) {
     const list = map.get(r.claimId) ?? [];
     list.push(r);
     map.set(r.claimId, list);
+  }
+  return map;
+}
+
+// Lost reports (of those given) that have an open or confirmed match, for
+// the status journey.
+export async function matchedLostIds(reportIds: number[]) {
+  if (!reportIds.length) return new Set<number>();
+  const rows = await db
+    .selectDistinct({ id: schema.matchRecord.lostReportId })
+    .from(schema.matchRecord)
+    .where(
+      and(
+        inArray(schema.matchRecord.lostReportId, reportIds),
+        inArray(schema.matchRecord.matchStatus, ["PENDING_VERIFICATION", "CONFIRMED"]),
+      ),
+    );
+  return new Set(rows.map((r) => r.id));
+}
+
+// The most advanced claim on each found report (released or approved before
+// anything else), for the status journey.
+export async function leadingClaims(reportIds: number[]) {
+  const map = new Map<number, { claimStatus: ClaimStatus; dateReviewed: Date | null; dateReleased: Date | null }>();
+  if (!reportIds.length) return map;
+  const rows = await db
+    .select({
+      reportId: schema.claim.reportId,
+      claimStatus: schema.claim.claimStatus,
+      dateReviewed: schema.claim.dateReviewed,
+      dateReleased: schema.claim.dateReleased,
+    })
+    .from(schema.claim)
+    .where(and(inArray(schema.claim.reportId, reportIds), inArray(schema.claim.claimStatus, ["RELEASED", "APPROVED"])));
+  for (const r of rows) {
+    const current = map.get(r.reportId);
+    if (!current || r.claimStatus === "RELEASED") map.set(r.reportId, r);
   }
   return map;
 }

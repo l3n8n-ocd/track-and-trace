@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
-import { MatchStatusBadge } from "@/components/status-badge";
+import { Hand, Hourglass, ImageOff, Link2, ScanSearch } from "lucide-react";
+import { MatchScore, MatchStatusBadge, TypeBadge } from "@/components/status-badge";
 import { SubmitButton } from "@/components/submit-button";
-import { EmptyState, LinkButton, PageHeader } from "@/components/ui";
+import { EmptyState, ICON_STROKE, LinkButton, PageHeader, cn } from "@/components/ui";
 import { db, schema } from "@/db";
 import { formatDate } from "@/lib/format";
 import { requireUser } from "@/lib/session";
@@ -45,19 +45,20 @@ export default async function MatchesPage() {
   }));
 
   return (
-    <div>
+    <div className="mx-auto max-w-4xl">
       <PageHeader
+        icon={ScanSearch}
         title="Possible matches"
         description="Found items that look like something you reported lost. A match is only a suggestion; the office verifies ownership before releasing any item."
       />
       {matches.length === 0 ? (
-        <EmptyState title="No matches right now">
-          We compare every new found report with your lost reports and will notify you when something
-          looks similar. You can also{" "}
-          <Link href="/search" className="text-brand-700 underline">
-            search found items
-          </Link>{" "}
-          yourself.
+        <EmptyState
+          icon={ScanSearch}
+          title="No matches right now"
+          action={<LinkButton href="/search" variant="secondary">Search found items</LinkButton>}
+        >
+          We compare every new found report with your lost reports and will notify you when something looks
+          similar. You can also search found items yourself.
         </EmptyState>
       ) : (
         <ul className="space-y-3">
@@ -66,41 +67,65 @@ export default async function MatchesPage() {
             const img = f.images[0];
             const claimable = f.status === "VERIFIED" && m.matchStatus === "PENDING_VERIFICATION";
             return (
-              <li key={m.id} className="flex flex-col gap-4 rounded-lg bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:flex-row sm:items-center">
-                <div className="h-20 w-full shrink-0 overflow-hidden rounded-md bg-slate-100 sm:w-24">
-                  {img && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={photoUrl(img.imagePath, { blurred: true, width: 200 })} alt="" className="h-full w-full object-cover" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs text-slate-500">For your lost “{m.lostReport.itemName}”</p>
-                  <p className="font-medium">{f.itemName}</p>
-                  <p className="text-sm text-slate-600">
-                    {f.category.name} · {f.location.buildingName} · found {formatDate(f.dateLostOrFound)}
-                  </p>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                    <MatchStatusBadge status={m.matchStatus} />
-                    <span>Match score {m.matchScore.toFixed(0)}/100</span>
-                    {f.status === "PENDING" && <span>· Not yet received by the office</span>}
+              <li
+                key={m.id}
+                className={cn(
+                  "overflow-hidden rounded-2xl border bg-paper",
+                  m.matchStatus === "PENDING_VERIFICATION" ? "border-line-strong" : "border-line",
+                )}
+              >
+                <p className="flex items-center gap-2 border-b border-line bg-cream/70 px-4 py-2.5 text-[13px] text-ink-soft">
+                  <Link2 aria-hidden strokeWidth={ICON_STROKE} className="size-4 text-crimson" />
+                  For your lost “{m.lostReport.itemName}”
+                </p>
+                <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
+                  <div className="h-40 w-full shrink-0 overflow-hidden rounded-xl bg-sand sm:size-24">
+                    {img ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={photoUrl(img.imagePath, { blurred: true, width: 240 })} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="flex h-full items-center justify-center text-ink-faint">
+                        <ImageOff aria-hidden strokeWidth={ICON_STROKE} className="size-6" />
+                      </span>
+                    )}
                   </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <LinkButton href={`/items/${f.id}?match=${m.id}`} variant="secondary" size="sm">
-                    View
-                  </LinkButton>
-                  {claimable && (
-                    <LinkButton href={`/items/${f.id}/claim?match=${m.id}`} size="sm">
-                      This is mine
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <TypeBadge type="FOUND" />
+                      <p className="font-semibold text-ink">{f.itemName}</p>
+                    </div>
+                    <p className="mt-1 text-sm text-ink-muted">
+                      {f.category.name} · {f.location.buildingName} · found {formatDate(f.dateLostOrFound)}
+                    </p>
+                    <div className="mt-2.5 flex flex-wrap items-center gap-3">
+                      <MatchStatusBadge status={m.matchStatus} size="sm" />
+                      <MatchScore score={m.matchScore} />
+                      {f.status === "PENDING" && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-rust">
+                          <Hourglass aria-hidden strokeWidth={ICON_STROKE} className="size-3.5" />
+                          Not yet received by the office
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 sm:flex-col sm:items-stretch">
+                    {claimable && (
+                      <LinkButton href={`/items/${f.id}/claim?match=${m.id}`} size="sm">
+                        <Hand aria-hidden />
+                        This is mine
+                      </LinkButton>
+                    )}
+                    <LinkButton href={`/items/${f.id}?match=${m.id}`} variant="secondary" size="sm">
+                      View details
                     </LinkButton>
-                  )}
-                  {m.matchStatus === "PENDING_VERIFICATION" && (
-                    <form action={dismissMatchAction.bind(null, m.id)}>
-                      <SubmitButton variant="ghost" size="sm" pendingText="…">
-                        Not mine
-                      </SubmitButton>
-                    </form>
-                  )}
+                    {m.matchStatus === "PENDING_VERIFICATION" && (
+                      <form action={dismissMatchAction.bind(null, m.id)}>
+                        <SubmitButton variant="ghost" size="sm" pendingText="…" className="w-full">
+                          Not mine
+                        </SubmitButton>
+                      </form>
+                    )}
+                  </div>
                 </div>
               </li>
             );

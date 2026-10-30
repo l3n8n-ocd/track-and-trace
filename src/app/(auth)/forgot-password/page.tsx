@@ -1,23 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Card } from "@/components/ui";
+import { ArrowLeft } from "lucide-react";
+import { AuthHeading } from "../auth-heading";
 import { ForgotForm } from "./forgot-form";
 
 export const metadata: Metadata = { title: "Forgot password" };
 
 export default function ForgotPasswordPage() {
   return (
-    <Card className="p-6">
-      <h1 className="text-xl font-semibold">Forgot your password?</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        Enter your registered email and we&apos;ll send you a link to set a new password.
-      </p>
+    <div className="w-full max-w-[400px]">
+      <AuthHeading title="Forgot your password?">
+        Enter your registered email and we&apos;ll send you a link to set a new one.
+      </AuthHeading>
       <ForgotForm />
-      <p className="mt-6 text-sm">
-        <Link href="/login" className="text-brand-700 hover:underline">
-          Back to log in
-        </Link>
-      </p>
-    </Card>
+      <Link
+        href="/login"
+        className="mt-6 flex items-center justify-center gap-1.5 text-sm font-semibold text-ink-soft hover:text-ink"
+      >
+        <ArrowLeft aria-hidden strokeWidth={2} className="size-4" />
+        Back to log in
+      </Link>
+    </div>
   );
 }

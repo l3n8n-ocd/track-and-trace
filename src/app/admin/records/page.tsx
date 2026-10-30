@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { and, desc, eq, gte, lt, lte, or, type SQL } from "drizzle-orm";
+import { Activity, Download, FileText, FolderArchive, Inbox, ListFilter, Search, TimerOff } from "lucide-react";
 import { Flash } from "@/components/flash";
 import { ReportStatusBadge } from "@/components/status-badge";
-import { Button, Card, Field, Input, PageHeader, buttonClass } from "@/components/ui";
+import { Button, Card, CardHeader, Field, ICON_STROKE, Input, PageHeader } from "@/components/ui";
 import { db, schema } from "@/db";
 import { daysAgo, formatDate, formatDateTime } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
 import { locationLabel } from "@/server/options";
 import { storageLocation } from "@/server/queries";
+import { ActivityIcon } from "../activity-icon";
 import { containsCI } from "@/server/sql";
 
 export const metadata: Metadata = { title: "Records" };
@@ -60,42 +62,73 @@ export default async function RecordsPage({ searchParams }: PageProps<"/admin/re
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Records" description="Exports, unclaimed items, and the activity log." />
+      <PageHeader icon={FolderArchive} title="Records" description="Exports, unclaimed items, and the activity log." />
       <Flash sp={sp} />
 
-      <Card>
-        <h2 className="font-semibold">Export records (CSV)</h2>
-        <p className="mt-1 text-sm text-slate-600">Uses the date range in the activity log filter below, if set.</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {[
-            ["reports", "Reports"],
-            ["claims", "Claims"],
-            ["activity", "Activity log"],
-          ].map(([type, label]) => (
-            <a key={type} href={`/api/admin/export?type=${type}${exportQs ? `&${exportQs}` : ""}`} className={buttonClass("secondary", "sm")}>
-              Download {label}
+      <section aria-labelledby="export-heading">
+        <h2 id="export-heading" className="mb-1 text-sm font-semibold uppercase tracking-wider text-ink-muted">
+          Export records (CSV)
+        </h2>
+        <p className="mb-3 text-sm text-ink-muted">
+          {from || to
+            ? `Limited to the activity log date range below (${from || "start"} to ${to || "today"}).`
+            : "Uses the date range in the activity log filter below, if set."}
+        </p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {(
+            [
+              ["reports", "Reports", "Every lost and found report", FileText],
+              ["claims", "Claims", "Claims and their decisions", Inbox],
+              ["activity", "Activity log", "Who did what, and when", Activity],
+            ] as const
+          ).map(([type, label, hint, Icon]) => (
+            <a
+              key={type}
+              href={`/api/admin/export?type=${type}${exportQs ? `&${exportQs}` : ""}`}
+              className="group flex items-center gap-3 rounded-2xl border border-line bg-paper p-4 transition-colors hover:border-line-strong hover:bg-white"
+            >
+              <span className="flex size-10 items-center justify-center rounded-xl bg-sand text-crimson">
+                <Icon aria-hidden strokeWidth={ICON_STROKE} className="size-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold text-ink">Download {label}</span>
+                <span className="block text-xs text-ink-muted">{hint}</span>
+              </span>
+              <Download aria-hidden strokeWidth={ICON_STROKE} className="size-5 text-ink-faint group-hover:text-crimson" />
             </a>
           ))}
+        </div>
+      </section>
+
+      <Card>
+        <CardHeader
+          icon={TimerOff}
+          title="Expired and unclaimed items"
+          description="Found items expire after 60 days in storage without an approved claim. Dispose of them according to university policy, then archive the report."
+        />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div>
+            <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink">
+              <span className="size-2 rounded-full bg-berry" />
+              Expired ({expired.length})
+            </h3>
+            <ItemList rows={expired} empty="No expired items." />
+          </div>
+          <div>
+            <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink">
+              <span className="size-2 rounded-full bg-rust" />
+              In storage over 50 days ({aging.length})
+            </h3>
+            <ItemList rows={aging} empty="Nothing close to expiring." />
+          </div>
         </div>
       </Card>
 
       <Card>
-        <h2 className="font-semibold">Expired and unclaimed items</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Found items are marked expired after 60 days in storage without an approved claim. Dispose of them according to
-          university policy, then archive the report.
-        </p>
-        <h3 className="mt-4 text-sm font-medium">Expired ({expired.length})</h3>
-        <ItemList rows={expired} />
-        <h3 className="mt-4 text-sm font-medium">In storage over 50 days ({aging.length})</h3>
-        <ItemList rows={aging} />
-      </Card>
-
-      <Card>
-        <h2 className="font-semibold">Activity log</h2>
-        <form className="mt-3 grid gap-3 sm:grid-cols-4">
-          <Field label="Search" htmlFor="q" className="sm:col-span-2">
-            <Input id="q" name="q" defaultValue={q} placeholder="Action, person, or record type" />
+        <CardHeader icon={Activity} title="Activity log" description={`${logs.length} entries${logs.length === 200 ? " (latest 200)" : ""}`} />
+        <form className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_180px_auto] lg:items-end">
+          <Field label="Search" htmlFor="q" className="sm:col-span-2 lg:col-span-1">
+            <Input id="q" name="q" icon={Search} defaultValue={q} placeholder="Action, person, or record type" />
           </Field>
           <Field label="From" htmlFor="from">
             <Input id="from" name="from" type="date" defaultValue={from} />
@@ -103,44 +136,39 @@ export default async function RecordsPage({ searchParams }: PageProps<"/admin/re
           <Field label="To" htmlFor="to">
             <Input id="to" name="to" type="date" defaultValue={to} />
           </Field>
-          <div className="sm:col-span-4">
-            <Button type="submit" size="sm">
-              Filter
-            </Button>
-          </div>
+          <Button type="submit" className="sm:col-span-2 lg:col-span-1">
+            <ListFilter aria-hidden />
+            Filter
+          </Button>
         </form>
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-slate-500">
-              <tr>
-                <th className="py-2 pr-4">When</th>
-                <th className="py-2 pr-4">Who</th>
-                <th className="py-2 pr-4">Action</th>
-                <th className="py-2 pr-4">Record</th>
-                <th className="py-2">Details</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {logs.map(({ log, name }) => (
-                <tr key={log.id}>
-                  <td className="whitespace-nowrap py-2 pr-4 text-slate-500">{formatDateTime(log.dateLogged)}</td>
-                  <td className="py-2 pr-4">{name ?? "System"}</td>
-                  <td className="py-2 pr-4">{log.action}</td>
-                  <td className="whitespace-nowrap py-2 pr-4">
+        {logs.length === 0 ? (
+          <p className="rounded-xl bg-cream/70 px-4 py-3.5 text-sm text-ink-muted">No activity matches these filters.</p>
+        ) : (
+          <ol className="-mx-2 divide-y divide-line">
+            {logs.map(({ log, name }) => (
+              <li key={log.id} className="flex items-start gap-3 rounded-xl px-2 py-3">
+                <ActivityIcon action={log.action} entity={log.targetEntity} />
+                <div className="min-w-0 flex-1 text-sm">
+                  <p className="text-ink">
+                    <span className="font-semibold">{name ?? "System"}</span> · {log.action}
+                    {" · "}
                     {log.targetEntity === "report" || log.targetEntity === "claim" ? (
-                      <Link href={`/admin/${log.targetEntity}s/${log.targetId}`} className="text-brand-700 hover:underline">
+                      <Link href={`/admin/${log.targetEntity}s/${log.targetId}`} className="font-medium text-crimson hover:underline">
                         {log.targetEntity} #{log.targetId}
                       </Link>
                     ) : (
-                      `${log.targetEntity} ${log.targetId.length > 12 ? "" : `#${log.targetId}`}`
+                      <span className="text-ink-muted">
+                        {log.targetEntity} {log.targetId.length > 12 ? "" : `#${log.targetId}`}
+                      </span>
                     )}
-                  </td>
-                  <td className="py-2 text-slate-600">{log.details}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </p>
+                  {log.details && <p className="mt-0.5 text-ink-soft">{log.details}</p>}
+                </div>
+                <time className="shrink-0 whitespace-nowrap pt-0.5 text-xs text-ink-muted">{formatDateTime(log.dateLogged)}</time>
+              </li>
+            ))}
+          </ol>
+        )}
       </Card>
     </div>
   );
@@ -148,21 +176,25 @@ export default async function RecordsPage({ searchParams }: PageProps<"/admin/re
 
 function ItemList({
   rows,
+  empty,
 }: {
   rows: { report: typeof schema.report.$inferSelect; storage: typeof schema.location.$inferSelect | null }[];
+  empty: string;
 }) {
-  if (!rows.length) return <p className="mt-1 text-sm text-slate-500">None.</p>;
+  if (!rows.length) return <p className="rounded-xl bg-cream/70 px-4 py-3.5 text-sm text-ink-muted">{empty}</p>;
   return (
-    <ul className="mt-2 divide-y divide-slate-100 text-sm">
+    <ul className="divide-y divide-line rounded-xl border border-line">
       {rows.map(({ report: r, storage }) => (
-        <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-          <Link href={`/admin/reports/${r.id}`} className="text-brand-700 hover:underline">
-            #{r.id} {r.itemName}
+        <li key={r.id}>
+          <Link href={`/admin/reports/${r.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5 hover:bg-sand/60">
+            <span className="min-w-0 flex-1 text-sm font-semibold text-ink">
+              #{r.id} {r.itemName}
+            </span>
+            <ReportStatusBadge status={r.status} size="sm" />
+            <span className="w-full text-xs text-ink-muted">
+              {storage ? locationLabel(storage) : "No storage"} · verified {formatDate(r.dateVerified)}
+            </span>
           </Link>
-          <span className="flex items-center gap-2 text-xs text-slate-500">
-            {storage ? locationLabel(storage) : "No storage"} · verified {formatDate(r.dateVerified)}
-            <ReportStatusBadge status={r.status} />
-          </span>
         </li>
       ))}
     </ul>
