@@ -53,9 +53,15 @@ production load times.
 
 ## Function region
 
-The live deployment was observed executing in `iad1` (US East). Confirm the
-TiDB cluster's actual region before changing Vercel's Function Region or
-adding a `regions` entry to `vercel.json`. Place the function close to the
-database; choosing Singapore without checking the database could increase
-query latency. The repository does not contain the production database
-hostname or region, so this change deliberately does not guess a new region.
+`vercel.json` pins the backend to `sin1` (Singapore), following the request
+to move execution out of `iad1` (US East). This selects one region, which is
+supported on Vercel Hobby. A new deployment is required for it to take effect.
+
+Verify live API responses after deployment: an `x-vercel-id` beginning with
+`sin1::sin1::` identifies Singapore ingress and function execution. Measure
+API response times as well as static frontend delivery.
+
+The TiDB cluster's location remains unverified; the repository does not
+contain its production hostname. Function-to-database distance can still
+affect data-dependent requests, so Singapore is not a guarantee of optimal
+database latency.

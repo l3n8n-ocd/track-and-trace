@@ -44,9 +44,18 @@ async function step(name, fn) {
 async function logIn(email, password) {
   await driver.manage().deleteAllCookies();
   await driver.get(`${BASE}/login`);
-  await driver.wait(until.elementLocated(By.id("email")), WAIT).sendKeys(email);
-  await driver.findElement(By.id("password")).sendKeys(password);
-  await driver.findElement(By.css("button[type=submit]")).click();
+  // Streamed pages can have form elements in the DOM before they are visible.
+  // Wait for each control to be ready before interacting with it.
+  for (const [locator, value] of [[By.id("email"), email], [By.id("password"), password]]) {
+    const field = await driver.wait(until.elementLocated(locator), WAIT);
+    await driver.wait(until.elementIsVisible(field), WAIT);
+    await driver.wait(until.elementIsEnabled(field), WAIT);
+    await field.sendKeys(value);
+  }
+  const submit = await driver.wait(until.elementLocated(By.css("button[type=submit]")), WAIT);
+  await driver.wait(until.elementIsVisible(submit), WAIT);
+  await driver.wait(until.elementIsEnabled(submit), WAIT);
+  await submit.click();
 }
 
 const textOnPage = (text) => until.elementLocated(By.xpath(`//*[contains(normalize-space(.), "${text}")]`));
