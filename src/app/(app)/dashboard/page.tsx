@@ -22,6 +22,7 @@ import { claimJourney, journeyProgress, reportJourney } from "@/lib/journey";
 import { requireUser } from "@/lib/session";
 import { ACTIVE_CLAIM_STATUSES, OPEN_REPORT_STATUSES } from "@/lib/status";
 import { matchedLostIds } from "@/server/queries";
+import { pendingMatchCount } from "@/server/counts";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -33,25 +34,12 @@ function greeting() {
 export default async function DashboardPage() {
   const user = await requireUser();
 
-  const myLost = db
-    .select({ id: schema.report.id })
-    .from(schema.report)
-    .where(and(eq(schema.report.userId, user.id), eq(schema.report.reportType, "LOST")));
-
-  const [[openReports], [matches], [claims], announcements, notifications, activeClaims, recentReports] = await Promise.all([
+  const [[openReports], matches, [claims], announcements, notifications, activeClaims, recentReports] = await Promise.all([
     db
       .select({ value: count() })
       .from(schema.report)
       .where(and(eq(schema.report.userId, user.id), inArray(schema.report.status, OPEN_REPORT_STATUSES))),
-    db
-      .select({ value: count() })
-      .from(schema.matchRecord)
-      .where(
-        and(
-          eq(schema.matchRecord.matchStatus, "PENDING_VERIFICATION"),
-          inArray(schema.matchRecord.lostReportId, myLost),
-        ),
-      ),
+    pendingMatchCount(user.id),
     db
       .select({ value: count() })
       .from(schema.claim)

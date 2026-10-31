@@ -2,7 +2,7 @@
 
 import { hashPassword } from "better-auth/crypto";
 import { and, count, eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { randomUUID } from "node:crypto";
@@ -14,6 +14,7 @@ import { logActivity } from "@/server/activity";
 import { ClaimError, approveClaim, rejectClaim, releaseClaim, requestMoreProof } from "@/server/claims";
 import { runMatchingForReport } from "@/server/matching";
 import { notify } from "@/server/notify";
+import { CATEGORY_OPTIONS_TAG, LOCATION_OPTIONS_TAG, COLLEGE_OPTIONS_TAG } from "@/server/options";
 
 // Admin actions redirect back to the page with ?msg= or ?error=, which the
 // page shows as an alert.
@@ -210,6 +211,7 @@ export async function addCategoryAction(formData: FormData) {
   const parentId = num(formData, "parentId") || null;
   if (name.length < 2) back(settingsPath(formData), { error: "Enter a category name." });
   const [res] = await db.insert(schema.category).values({ name, parentId });
+  updateTag(CATEGORY_OPTIONS_TAG);
   await logActivity(admin.id, "Added category", "category", res.insertId, name);
   back(settingsPath(formData), { msg: `Category "${name}" added.` });
 }
@@ -219,6 +221,7 @@ export async function renameCategoryAction(categoryId: number, formData: FormDat
   const name = text(formData, "name");
   if (name.length < 2) back(settingsPath(formData), { error: "Enter a category name." });
   await db.update(schema.category).set({ name }).where(eq(schema.category.id, categoryId));
+  updateTag(CATEGORY_OPTIONS_TAG);
   await logActivity(admin.id, "Renamed category", "category", categoryId, name);
   back(settingsPath(formData), { msg: "Category renamed." });
 }
@@ -233,6 +236,7 @@ export async function deleteCategoryAction(categoryId: number, formData?: FormDa
     back(settingsPath(formData), { error: "This category has reports or subcategories, so it can't be deleted." });
   }
   await db.delete(schema.category).where(eq(schema.category.id, categoryId));
+  updateTag(CATEGORY_OPTIONS_TAG);
   await logActivity(admin.id, "Deleted category", "category", categoryId);
   back(settingsPath(formData), { msg: "Category deleted." });
 }
@@ -250,6 +254,7 @@ export async function addLocationAction(formData: FormData) {
     isStorage,
   });
   await logActivity(admin.id, isStorage ? "Added storage location" : "Added place", "location", res.insertId, buildingName);
+  updateTag(LOCATION_OPTIONS_TAG);
   back(settingsPath(formData), { msg: isStorage ? "Storage location added." : "Place added." });
 }
 
@@ -258,6 +263,7 @@ export async function toggleLocationAction(locationId: number, formData?: FormDa
   const loc = await db.query.location.findFirst({ where: eq(schema.location.id, locationId) });
   if (!loc) back(settingsPath(formData), { error: "Location not found." });
   await db.update(schema.location).set({ isActive: !loc.isActive }).where(eq(schema.location.id, locationId));
+  updateTag(LOCATION_OPTIONS_TAG);
   await logActivity(admin.id, loc.isActive ? "Hid location" : "Restored location", "location", locationId);
   back(settingsPath(formData), { msg: loc.isActive ? "Location hidden from forms." : "Location restored." });
 }
@@ -269,6 +275,7 @@ export async function addCollegeAction(formData: FormData) {
   const exists = await db.query.college.findFirst({ where: eq(schema.college.name, name) });
   if (exists) back(settingsPath(formData), { error: "That college already exists." });
   const [res] = await db.insert(schema.college).values({ name });
+  updateTag(COLLEGE_OPTIONS_TAG);
   await logActivity(admin.id, "Added college", "college", res.insertId, name);
   back(settingsPath(formData), { msg: "College added." });
 }

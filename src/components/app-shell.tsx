@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { and, count, eq, inArray } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { ArrowLeftRight, Bell, LogOut, Search } from "lucide-react";
 import { db, schema } from "@/db";
 import type { SessionUser } from "@/lib/session";
+import { adminClaimCounts, pendingMatchCount, pendingReportCount } from "@/server/counts";
 import { Logo } from "./logo";
 import { LogoutButton } from "./logout-button";
 import { MobileNav, Sidebar, type NavCounts } from "./nav-links";
@@ -10,29 +11,16 @@ import { Avatar, ICON_STROKE, cn } from "./ui";
 
 const ROLE_LABEL = { student: "Student", faculty: "Faculty", staff: "Staff", admin: "Administrator" } as const;
 
-async function navCounts(user: SessionUser, section: "user" | "admin", unread: number): Promise<NavCounts> {
+async function navCounts(user: SessionUser, section: "user" | "admin"): Promise<NavCounts> {
   if (section === "admin") {
-    const [[reports], [claims]] = await Promise.all([
-      db.select({ value: count() }).from(schema.report).where(eq(schema.report.status, "PENDING")),
-      db.select({ value: count() }).from(schema.claim).where(eq(schema.claim.claimStatus, "PENDING")),
-    ]);
+    const [reports, claims] = await Promise.all([pendingReportCount(), adminClaimCounts()]);
     return {
-      "/admin/reports": { value: reports.value, urgent: true },
-      "/admin/claims": { value: claims.value, urgent: true },
+      "/admin/reports": { value: reports, urgent: true },
+      "/admin/claims": { value: claims.pending, urgent: true },
     };
   }
-  const myLost = db
-    .select({ id: schema.report.id })
-    .from(schema.report)
-    .where(and(eq(schema.report.userId, user.id), eq(schema.report.reportType, "LOST")));
-  const [[matches]] = await Promise.all([
-    db
-      .select({ value: count() })
-      .from(schema.matchRecord)
-      .where(and(eq(schema.matchRecord.matchStatus, "PENDING_VERIFICATION"), inArray(schema.matchRecord.lostReportId, myLost))),
-  ]);
+  const matches = await pendingMatchCount(user.id);
   return {
-    "/notifications": { value: unread },
     "/matches": { value: matches.value, urgent: true },
   };
 }
@@ -46,11 +34,12 @@ export async function AppShell({
   section: "user" | "admin";
   children: React.ReactNode;
 }) {
-  const [{ value: unread }] = await db
-    .select({ value: count() })
-    .from(schema.notification)
-    .where(and(eq(schema.notification.userId, user.id), eq(schema.notification.isRead, false)));
-  const counts = await navCounts(user, section, unread);
+  const [[{ value: unread }], counts] = await Promise.all([
+    db.select({ value: count() }).from(schema.notification)
+      .where(and(eq(schema.notification.userId, user.id), eq(schema.notification.isRead, false))),
+    navCounts(user, section),
+  ]);
+  if (section === "user") counts["/notifications"] = { value: unread };
 
   const switchLink =
     user.role === "admin"

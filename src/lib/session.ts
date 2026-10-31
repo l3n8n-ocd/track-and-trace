@@ -2,7 +2,7 @@ import "server-only";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
-import { auth } from "./auth";
+import { getSessionCookie } from "better-auth/cookies";
 import type { Role } from "@/db/schema";
 
 export type SessionUser = {
@@ -16,7 +16,13 @@ export type SessionUser = {
 
 // Reads the current session once per request.
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const requestHeaders = await headers();
+  // Guests cannot have a session without its token. Avoid initializing the
+  // auth/database stack for public pages; signed-in users still get the full
+  // database check, including account deactivation and session revocation.
+  if (!getSessionCookie(requestHeaders)) return null;
+  const { auth } = await import("./auth");
+  const session = await auth.api.getSession({ headers: requestHeaders });
   if (!session) return null;
   const u = session.user as typeof session.user & {
     role: Role;
