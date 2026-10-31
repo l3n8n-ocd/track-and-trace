@@ -2,7 +2,7 @@
 
 import { hashPassword } from "better-auth/crypto";
 import { and, count, eq } from "drizzle-orm";
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { randomUUID } from "node:crypto";
@@ -15,6 +15,9 @@ import { ClaimError, approveClaim, rejectClaim, releaseClaim, requestMoreProof }
 import { runMatchingForReport } from "@/server/matching";
 import { notify } from "@/server/notify";
 import { CATEGORY_OPTIONS_TAG, LOCATION_OPTIONS_TAG, COLLEGE_OPTIONS_TAG } from "@/server/options";
+
+// Both Server Actions and the authenticated frontend API need immediate expiry.
+function updateTag(tag: string) { revalidateTag(tag, { expire: 0 }); }
 
 // Admin actions redirect back to the page with ?msg= or ?error=, which the
 // page shows as an alert.

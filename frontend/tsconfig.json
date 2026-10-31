@@ -1,0 +1,39 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "plugins": [],
+    "types": [
+      "vite/client"
+    ],
+    "paths": {
+      "@/*": [
+        "../src/*"
+      ],
+      "@client/*": [
+        "./src/*"
+      ],
+      "next/link": [
+        "./src/link.tsx"
+      ],
+      "next/navigation": [
+        "./src/navigation.ts"
+      ],
+      "next/server": [
+        "./src/next-server.ts"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "generated/**/*.ts",
+    "generated/**/*.tsx",
+    "../next-env.d.ts",
+    "../.next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

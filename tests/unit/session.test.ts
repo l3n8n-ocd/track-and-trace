@@ -18,6 +18,18 @@ beforeEach(() => {
 });
 
 describe("session lookup", () => {
+  it("passes a bearer token to authentication for full validation", async () => {
+    const requestHeaders = new Headers({ authorization: "Bearer signed-token.signature" });
+    mocks.headers.mockResolvedValue(requestHeaders);
+    expect(await getSessionUser()).toMatchObject({ id: user.id });
+    expect(mocks.getSession).toHaveBeenCalledWith({ headers: requestHeaders });
+  });
+
+  it("rejects a bearer session after deactivation", async () => {
+    mocks.headers.mockResolvedValue(new Headers({ authorization: "Bearer token.signature" }));
+    mocks.getSession.mockResolvedValue({ user: { ...user, status: "DEACTIVATED" } });
+    expect(await getSessionUser()).toBeNull();
+  });
   it.each(["", "theme=light"])("does not initialize authentication for a guest (%s)", async (cookie) => {
     mocks.headers.mockResolvedValue(new Headers({ cookie }));
     expect(await getSessionUser()).toBeNull();

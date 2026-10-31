@@ -1,0 +1,364 @@
+{
+  "(app)/claims": {
+    "remove": [
+      0,
+      1
+    ],
+    "data": [
+      "user",
+      "rows"
+    ]
+  },
+  "(app)/claims/[id]": {
+    "remove": [
+      0,
+      4,
+      6
+    ],
+    "data": [
+      "user",
+      "row",
+      "claim"
+    ]
+  },
+  "(app)/dashboard": {
+    "remove": [
+      0,
+      1,
+      2
+    ],
+    "data": [
+      "user",
+      "openReports",
+      "matches",
+      "claims",
+      "announcements",
+      "notifications",
+      "activeClaims",
+      "recentReports",
+      "matched"
+    ]
+  },
+  "(app)/items/[id]/claim": {
+    "remove": [
+      0,
+      3
+    ],
+    "data": [
+      "user",
+      "item"
+    ]
+  },
+  "(app)/items/[id]": {
+    "remove": [
+      0,
+      3
+    ],
+    "data": [
+      "user",
+      "item"
+    ]
+  },
+  "(app)/matches": {
+    "remove": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "data": [
+      "user",
+      "rows",
+      "images"
+    ]
+  },
+  "(app)/notifications": {
+    "remove": [
+      0,
+      1
+    ],
+    "data": [
+      "user",
+      "items"
+    ]
+  },
+  "(app)/profile": {
+    "remove": [
+      0,
+      1
+    ],
+    "data": [
+      "session",
+      "found",
+      "profile",
+      "colleges"
+    ]
+  },
+  "(app)/reports/new": {
+    "remove": [
+      0,
+      3
+    ],
+    "data": [
+      "categories",
+      "places"
+    ]
+  },
+  "(app)/reports": {
+    "remove": [
+      0,
+      3,
+      5
+    ],
+    "data": [
+      "user",
+      "rows",
+      "typeCounts",
+      "images",
+      "matched"
+    ]
+  },
+  "(app)/reports/[id]/edit": {
+    "remove": [
+      0,
+      3,
+      5,
+      7
+    ],
+    "data": [
+      "user",
+      "found",
+      "report",
+      "categories",
+      "places"
+    ]
+  },
+  "(app)/reports/[id]": {
+    "remove": [
+      0,
+      4,
+      6,
+      8
+    ],
+    "data": [
+      "user",
+      "row",
+      "report",
+      "matches"
+    ]
+  },
+  "(app)/search": {
+    "remove": [
+      0,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "data": [
+      "categories",
+      "places",
+      "total",
+      "rows",
+      "images"
+    ]
+  },
+  "(auth)/forgot-password": {
+    "remove": [],
+    "data": []
+  },
+  "(auth)/login": {
+    "remove": [
+      0
+    ],
+    "data": [
+      "user"
+    ],
+    "guestData": {
+      "user": null
+    }
+  },
+  "(auth)/register": {
+    "remove": [
+      0,
+      1
+    ],
+    "data": [
+      "colleges"
+    ]
+  },
+  "(auth)/reset-password": {
+    "remove": [],
+    "data": []
+  },
+  "(auth)/verify-email": {
+    "remove": [],
+    "data": []
+  },
+  "(public)": {
+    "remove": [
+      0
+    ],
+    "data": [
+      "user"
+    ],
+    "guestData": {
+      "user": null
+    }
+  },
+  "(public)/privacy": {
+    "remove": [],
+    "data": []
+  },
+  "admin/announcements": {
+    "remove": [
+      0,
+      2
+    ],
+    "data": [
+      "items"
+    ]
+  },
+  "admin/claims": {
+    "remove": [
+      0,
+      4,
+      5
+    ],
+    "data": [
+      "rows",
+      "counts"
+    ]
+  },
+  "admin/claims/[id]": {
+    "remove": [
+      0,
+      4,
+      6,
+      7,
+      8,
+      9
+    ],
+    "data": [
+      "claim",
+      "found",
+      "claimant",
+      "proofs",
+      "match",
+      "otherClaims",
+      "lost",
+      "history",
+      "images"
+    ]
+  },
+  "admin": {
+    "remove": [
+      0,
+      1
+    ],
+    "data": [
+      "admin",
+      "pendingReports",
+      "claimCounts",
+      "users",
+      "activity",
+      "queueReports",
+      "queueClaims",
+      "breakdown"
+    ]
+  },
+  "admin/records": {
+    "remove": [
+      0,
+      6,
+      8
+    ],
+    "data": [
+      "logs",
+      "expired",
+      "aging"
+    ]
+  },
+  "admin/reports": {
+    "remove": [
+      0,
+      7,
+      8,
+      9,
+      10
+    ],
+    "data": [
+      "rows",
+      "total",
+      "statusCounts"
+    ]
+  },
+  "admin/reports/[id]": {
+    "remove": [
+      0,
+      4,
+      8,
+      9
+    ],
+    "data": [
+      "row",
+      "reporter",
+      "images",
+      "storage",
+      "claims",
+      "matches",
+      "history",
+      "leading"
+    ]
+  },
+  "admin/settings": {
+    "remove": [
+      0,
+      3
+    ],
+    "data": [
+      "categories",
+      "locations",
+      "colleges"
+    ]
+  },
+  "admin/users/new": {
+    "remove": [
+      0
+    ],
+    "data": []
+  },
+  "admin/users": {
+    "remove": [
+      0,
+      4,
+      5,
+      6
+    ],
+    "data": [
+      "users",
+      "roleCounts"
+    ]
+  },
+  "admin/users/[id]": {
+    "remove": [
+      0,
+      3,
+      5
+    ],
+    "data": [
+      "admin",
+      "user",
+      "profile",
+      "college",
+      "reports",
+      "claims",
+      "logs"
+    ]
+  }
+}

@@ -45,3 +45,14 @@ next-env.d.ts
 /public/uploads/
 .data/
 test-results/
+
+# Firebase CLI and local deployment configuration
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+apphosting.local.yaml
+
+/frontend/node_modules/
+/frontend/dist/
+/frontend/generated/
+/frontend/public/

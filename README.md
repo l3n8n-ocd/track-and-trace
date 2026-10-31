@@ -10,6 +10,8 @@ This repository holds the live prototype for the BSIT 3I – G1 System Analysis 
 
 All features in the system design are built and tested locally. Deployment: see [Account setup](docs/setup-accounts.md).
 
+The static frontend can run on Firebase Hosting Spark with the existing Vercel Hobby backend. See [Free Firebase deployment](FIREBASE-SETUP.md) for setup, local development, and deployment commands.
+
 | Document | Contents |
 |---|---|
 | [System design](docs/system-design.md) | Scope, roles, requirements, architecture, data model, status lifecycles, matching engine, API, screens, security, and testing plan |

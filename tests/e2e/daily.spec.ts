@@ -44,9 +44,10 @@ test("daily job: reminders, lapsed claims, and expired items", async ({ request 
     [claimed, user.id],
   );
 
-  const unauthorized = await request.get("/api/cron/daily");
+  const cronUrl = (process.env.E2E_API_BASE_URL ?? "") + "/api/cron/daily";
+  const unauthorized = await request.get(cronUrl);
   expect(unauthorized.status()).toBe(401);
-  const res = await request.get("/api/cron/daily", {
+  const res = await request.get(cronUrl, {
     headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` },
   });
   expect(res.ok()).toBeTruthy();

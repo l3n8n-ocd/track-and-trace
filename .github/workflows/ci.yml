@@ -29,9 +29,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm ci --prefix frontend
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm run frontend:typecheck
       - run: npm test
+      - run: npm run frontend:build
 
   integration:
     name: API, Selenium, and end-to-end tests
@@ -53,6 +56,7 @@ jobs:
       DATABASE_URL: mysql://root:root@127.0.0.1:3306/returndesk
       BETTER_AUTH_SECRET: ci-only-secret-not-used-anywhere-else
       APP_URL: http://localhost:3000
+      CLIENT_APP_URL: http://localhost:5173
       CRON_SECRET: ci-cron-secret
       ADMIN_EMAIL: admin@ci.trackandtrace.test
       ADMIN_PASSWORD: CiAdmin12345
@@ -105,6 +109,20 @@ jobs:
         if: failure()
         run: grep -E "not ok|error:|message:" test-results/selenium.tap | head -20 | sed 's/^/::error title=Selenium::/' || true
 
+      - name: Static Firebase frontend against the API backend
+        env:
+          VITE_API_BASE_URL: http://localhost:3000
+          E2E_BASE_URL: http://localhost:5173
+          E2E_API_BASE_URL: http://localhost:3000
+          E2E_EMAIL_LOG: app.log
+        run: |
+          npm ci --prefix frontend
+          npm run frontend:build
+          npm --prefix frontend run preview > frontend.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:5173 && break; sleep 1; done
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+
       - name: Upload test evidence
         if: always()
         uses: actions/upload-artifact@v5
@@ -113,5 +131,6 @@ jobs:
           path: |
             test-results/
             app.log
+            frontend.log
           if-no-files-found: ignore
           retention-days: 14
