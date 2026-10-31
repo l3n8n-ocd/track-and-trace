@@ -95,6 +95,19 @@ export async function registerAction(_: FormState, formData: FormData): Promise<
   if (taken) {
     return { fieldErrors: { idNumber: "This ID number is already registered" }, values: kept };
   }
+  // Checked here because the login library answers a sign-up for an existing
+  // email with a made-up user instead of an error, and saving the profile
+  // for that user would fail.
+  const emailTaken = await db.query.user.findFirst({
+    columns: { id: true },
+    where: eq(schema.user.email, d.email),
+  });
+  if (emailTaken) {
+    return {
+      fieldErrors: { email: "This email is already registered. Log in, or use Forgot password if you can't." },
+      values: kept,
+    };
+  }
 
   let userId: string;
   try {
