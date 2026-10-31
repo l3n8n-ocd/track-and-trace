@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { asc } from "drizzle-orm";
 import {
   Building2,
   ChevronDown,
@@ -21,9 +20,9 @@ import {
 import { Flash } from "@/components/flash";
 import { SubmitButton } from "@/components/submit-button";
 import { Badge, Card, CardHeader, ICON_STROKE, Input, PageHeader, Select, cn } from "@/components/ui";
-import { db, schema } from "@/db";
+import { schema } from "@/db";
 import { requireAdmin } from "@/lib/session";
-import { locationLabel } from "@/server/options";
+import { categories as categoryRows, locations as locationRows, collegeOptions, locationLabel } from "@/server/options";
 import {
   addCategoryAction,
   addCollegeAction,
@@ -50,9 +49,9 @@ export default async function SettingsPage({ searchParams }: PageProps<"/admin/s
   const sp = await searchParams;
   const tab = TABS.find((t) => t.key === sp.tab)?.key ?? "categories";
   const [categories, locations, colleges] = await Promise.all([
-    db.select().from(schema.category).orderBy(asc(schema.category.name)),
-    db.select().from(schema.location).orderBy(asc(schema.location.buildingName)),
-    db.select().from(schema.college).orderBy(asc(schema.college.name)),
+    categoryRows(),
+    locationRows(),
+    collegeOptions(),
   ]);
   const parents = categories.filter((c) => c.parentId === null);
   const places = locations.filter((l) => !l.isStorage);

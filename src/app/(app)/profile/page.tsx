@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { asc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { CalendarDays, Database, Download, IdCard, KeyRound, Mail, UserRound, UserX } from "lucide-react";
 import { Avatar, Badge, Card, CardHeader, ICON_STROKE, PageHeader, buttonClass } from "@/components/ui";
@@ -7,6 +7,7 @@ import { db, schema } from "@/db";
 import { formatDate } from "@/lib/format";
 import { requireUser } from "@/lib/session";
 import { loadProfile } from "@/server/profile";
+import { collegeOptions } from "@/server/options";
 import { DeactivateForm, PasswordForm, ProfileForm } from "./forms";
 
 export const metadata: Metadata = { title: "Profile" };
@@ -16,7 +17,7 @@ export default async function ProfilePage() {
   const [found, profile, colleges] = await Promise.all([
     db.query.user.findFirst({ where: eq(schema.user.id, session.id) }),
     loadProfile(session.id),
-    db.select().from(schema.college).orderBy(asc(schema.college.name)),
+    collegeOptions(),
   ]);
   if (!found) notFound();
   const user = { ...found, ...profile };

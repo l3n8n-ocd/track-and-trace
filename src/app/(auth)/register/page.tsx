@@ -1,17 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { asc } from "drizzle-orm";
 import { connection } from "next/server";
-import { db, schema } from "@/db";
+import { collegeOptions } from "@/server/options";
 import { AuthHeading } from "../auth-heading";
 import { RegisterForm } from "./register-form";
 
 export const metadata: Metadata = { title: "Register" };
 
 export default async function RegisterPage() {
-  // Colleges can change, so read them on every request.
+  // Keep rendering on request while reusing the shared, invalidated list.
   await connection();
-  const colleges = await db.select().from(schema.college).orderBy(asc(schema.college.name));
+  const colleges = await collegeOptions();
   return (
     <div className="w-full max-w-[560px]">
       <AuthHeading title="Create your account">

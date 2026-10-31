@@ -257,6 +257,8 @@ export const report = mysqlTable(
     index("report_user_idx").on(t.userId),
     index("report_type_status_idx").on(t.reportType, t.status),
     index("report_category_idx").on(t.categoryId),
+    index("report_user_date_idx").on(t.userId, t.dateReported),
+    index("report_status_date_idx").on(t.status, t.dateReported),
   ],
 );
 
@@ -342,6 +344,8 @@ export const claim = mysqlTable(
     index("claim_report_idx").on(t.reportId),
     index("claim_claimant_idx").on(t.claimantId),
     index("claim_status_idx").on(t.claimStatus),
+    index("claim_status_date_idx").on(t.claimStatus, t.claimDate),
+    index("claim_claimant_status_date_idx").on(t.claimantId, t.claimStatus, t.claimDate),
   ],
 );
 
@@ -387,7 +391,10 @@ export const notification = mysqlTable(
       .default(now)
       .notNull(),
   },
-  (t) => [index("notification_user_idx").on(t.userId, t.isRead)],
+  (t) => [
+    index("notification_user_idx").on(t.userId, t.isRead),
+    index("notification_user_date_idx").on(t.userId, t.dateSent),
+  ],
 );
 
 export const announcement = mysqlTable("announcement", {

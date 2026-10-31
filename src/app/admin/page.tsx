@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { and, asc, count, desc, eq, lt, type SQL } from "drizzle-orm";
+import { asc, count, desc, eq } from "drizzle-orm";
 import {
   Activity,
   ArrowRight,
@@ -18,10 +18,11 @@ import { REPORT_TAG, TypeBadge } from "@/components/status-badge";
 import { Card, CardHeader, ICON_STROKE, LinkButton, cn } from "@/components/ui";
 import { db, schema } from "@/db";
 import { REPORT_STATUSES, type ReportStatus } from "@/db/schema";
-import { daysAgo, daysSince, formatDate, formatDateTime } from "@/lib/format";
+import { daysSince, formatDate, formatDateTime } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
 import { REPORT_STATUS_LABEL } from "@/lib/status";
 import { ActivityIcon } from "./activity-icon";
+import { adminClaimCounts, adminReportBreakdown, pendingReportCount } from "@/server/counts";
 
 export const metadata: Metadata = { title: "Admin overview" };
 
@@ -42,23 +43,10 @@ function since(d: Date) {
 
 export default async function AdminHome() {
   const admin = await requireAdmin();
-  const nearExpiry = daysAgo(50);
-  const c = (where: SQL | undefined, table: typeof schema.report | typeof schema.claim = schema.report) =>
-    db.select({ value: count() }).from(table).where(where).then((r) => r[0].value);
-
-  const [pendingReports, pendingClaims, inStorage, awaitingPickup, expiringSoon, users, activity, queueReports, queueClaims, breakdown] =
+  const [pendingReports, claimCounts, users, activity, queueReports, queueClaims, breakdown] =
     await Promise.all([
-      c(eq(schema.report.status, "PENDING")),
-      c(eq(schema.claim.claimStatus, "PENDING"), schema.claim),
-      c(and(eq(schema.report.reportType, "FOUND"), eq(schema.report.status, "VERIFIED"))),
-      c(eq(schema.claim.claimStatus, "APPROVED"), schema.claim),
-      c(
-        and(
-          eq(schema.report.reportType, "FOUND"),
-          eq(schema.report.status, "VERIFIED"),
-          lt(schema.report.dateVerified, nearExpiry),
-        ),
-      ),
+      pendingReportCount(),
+      adminClaimCounts(),
       db.select({ value: count() }).from(schema.user).then((r) => r[0].value),
       db
         .select({ log: schema.activityLog, name: schema.user.name })
@@ -87,11 +75,13 @@ export default async function AdminHome() {
         .where(eq(schema.claim.claimStatus, "PENDING"))
         .orderBy(asc(schema.claim.claimDate))
         .limit(5),
-      db
-        .select({ type: schema.report.reportType, status: schema.report.status, value: count() })
-        .from(schema.report)
-        .groupBy(schema.report.reportType, schema.report.status),
+      adminReportBreakdown(),
     ]);
+  const pendingClaims = claimCounts.pending;
+  const awaitingPickup = claimCounts.approved;
+  const stored = breakdown.find((r) => r.type === "FOUND" && r.status === "VERIFIED");
+  const inStorage = stored?.value ?? 0;
+  const expiringSoon = stored?.expiring ?? 0;
 
   const tiles: { label: string; value: number; href: string; icon: LucideIcon; hint: string; warn?: boolean }[] = [
     { label: "Approved, awaiting pickup", value: awaitingPickup, href: "/admin/claims?status=APPROVED", icon: PackageOpen, hint: "Check a valid ID on release" },
