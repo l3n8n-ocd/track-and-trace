@@ -7,6 +7,14 @@
 <link rel="icon" href="/icon-192.png" />
 <link rel="manifest" href="/manifest.webmanifest" />
 <link rel="preload" href="/fonts/dm-sans-ui.woff2" as="font" type="font/woff2" crossorigin />
-<link rel="preload" href="/fonts/archivo-ui.woff2" as="font" type="font/woff2" crossorigin />
+<script>
+// Prioritize the large display font on the home hero. Other pages discover it
+// through CSS, leaving bandwidth available for their route code and body font.
+if (window.location.pathname === "/") {
+  const font = document.createElement("link");
+  Object.assign(font, {rel:"preload", href:"/fonts/archivo-ui.woff2", as:"font", type:"font/woff2", crossOrigin:"anonymous"});
+  document.head.appendChild(font);
+}
+</script>
 <title>Track-and-Trace</title>
 </head><body class="font-sans antialiased"><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>
