@@ -5,12 +5,34 @@ vi.mock("server-only", () => ({}));
 vi.mock("next/headers", () => ({ headers: mocks.headers }));
 vi.mock("@/lib/auth", () => ({ auth: { api: { getSession: mocks.getSession } } }));
 
-import { getSessionUser } from "@/lib/session";
+import { getSessionUser, memoizeClientRequest, withClientSession } from "@/lib/session";
 
 const user = {
   id: "student-1", name: "Test Student", email: "student@example.test",
-  role: "student", firstName: "Test", lastName: "Student", status: "ACTIVE",
+  role: "student" as const, firstName: "Test", lastName: "Student", status: "ACTIVE",
 };
+
+describe("API request memoization", () => {
+  it("shares concurrent queries only within the current validated request", async () => {
+    const load = vi.fn(async () => "count");
+    const request = () => withClientSession(user, async () =>
+      Promise.all([memoizeClientRequest("count", load), memoizeClientRequest("count", load)]));
+    expect(await request()).toEqual(["count", "count"]);
+    expect(load).toHaveBeenCalledTimes(1);
+    await request();
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+  it("keeps concurrent users isolated and does not globally cache other calls", async () => {
+    const values = await Promise.all(["first", "second"].map(id =>
+      withClientSession({ ...user, id }, async () =>
+        memoizeClientRequest("same-key", async () => (await getSessionUser())?.id))));
+    expect(values).toEqual(["first", "second"]);
+    const load = vi.fn(async () => "uncached");
+    await memoizeClientRequest("same-key", load);
+    await memoizeClientRequest("same-key", load);
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+});
 
 beforeEach(() => {
   vi.clearAllMocks();

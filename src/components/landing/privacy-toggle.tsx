@@ -52,6 +52,8 @@ export function PrivacyToggle() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={SAMPLE.photo}
+            loading="lazy"
+            decoding="async"
             alt={office ? SAMPLE.name : ""}
             className={cn(
               "absolute inset-0 h-full w-full object-cover transition-[filter,transform] duration-700",
