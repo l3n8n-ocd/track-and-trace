@@ -98,6 +98,9 @@ not cache page responses or bypass authentication.
 The frontend preloads smaller variable fonts retaining the originals' full
 character coverage, Archivo width axis, optical sizing, and UI weights
 400–900. Together the two files shrink from 152,652 to 124,244 bytes (18.6%).
+The body font is always preloaded. The larger display font is preloaded only
+on a home-page entry, where it draws the hero; other pages discover it through
+CSS so that it does not compete with route code on slow connections.
 Original fonts and licenses remain available. Regenerate optimized assets with
 `scripts/optimize-frontend-fonts.py` when font usage changes. A below-fold
 illustration is lazy loaded, and an API preconnection hint starts TLS earlier.
