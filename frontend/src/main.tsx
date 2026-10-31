@@ -1,13 +1,12 @@
 import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { routes } from "../generated/routes";
-import { AppShell } from "../generated/app-shell";
-import AuthLayout from "@/app/(auth)/layout";
-import PublicLayout from "@/app/(public)/layout";
+import { matchRoute } from "./routes";
+import { loadLayout, type Section } from "./layouts";
 import NotFound from "@/app/not-found";
 import Loading from "@/app/(app)/loading";
-import { API_BASE, apiFetch, download, runtime, sessionToken, verifyEmail } from "./api";
-import { NavigationSignal, navigate, useLocation } from "./navigation";
+import { activatePage, cachedPage, currentPage, download, invalidatePageData, onSessionStorage, requestPage, requestSession, runtime, sessionToken, verifyEmail, type PageSnapshot } from "./api";
+import type { ClientPageProps } from "./types";
+import { NavigationSignal, navigate, notifyNavigation, useLocation } from "./navigation";
 import "./style.css";
 
 class ScreenBoundary extends Component<{children:ReactNode},{failed:boolean}> {
@@ -15,64 +14,67 @@ class ScreenBoundary extends Component<{children:ReactNode},{failed:boolean}> {
   static getDerivedStateFromError(){return {failed:true};}
   render(){return this.state.failed?<div className="mx-auto max-w-xl p-8"><h1 className="text-2xl font-bold">Unable to show this screen</h1><button className="mt-4 underline" onClick={()=>window.location.reload()}>Reload</button></div>:this.props.children;}
 }
-function matchRoute(pathname:string) {
-  for(const route of routes){
-    const pattern=route.path.split("/").filter(Boolean),parts=pathname.split("/").filter(Boolean);
-    if(pattern.length!==parts.length)continue;
-    const params:Record<string,string>={};
-    if(pattern.every((part,i)=>part.startsWith("[")?(params[part.slice(1,-1)]=decodeURIComponent(parts[i]),true):part===parts[i]))return {route,params};
-  }
-  return null;
-}
 function App(){
   const location=useLocation();
-  const [screen,setScreen]=useState<ReactNode>(null);
+  const [screen,setScreen]=useState<{key:string;content:ReactNode}|null>(null);
   const [busy,setBusy]=useState(true);
   const [error,setError]=useState("");
   const lastPath=useRef("");
   useEffect(()=>{
     let cancelled=false;
+    const controller=new AbortController();
+    const screenKey=window.location.pathname+window.location.search;
     const current=matchRoute(window.location.pathname);
     queueMicrotask(()=>{if(!cancelled){setBusy(true);setError("");}});
     async function load(){
-      if(!current){setScreen(<NotFound/>);setBusy(false);return;}
+      if(!current){setScreen({key:screenKey,content:<NotFound/>});setBusy(false);return;}
       const {route,params}=current;
       const search=Object.fromEntries(new URLSearchParams(window.location.search));
       if(route.id==="(auth)/verify-email"&&search.token){
         await verifyEmail(search.token);return;
       }
       if(!sessionToken()){runtime.user=null;runtime.shell=null;}
-      else if(route.guestData!==null&&route.id!=="(auth)/login"&&route.id!=="(public)"){
-        const response=await apiFetch("/api/client/session");
-        if(response.ok)runtime.user=(await response.json()).user;
+      const props:ClientPageProps={params:Promise.resolve(params),searchParams:Promise.resolve(search)};
+      const cached=route.serverData?cachedPage(route.id,params,search):undefined;
+      // Start the API request while destination code and its layout download.
+      const fresh=route.serverData?requestPage(route.id,props,controller.signal)
+        :sessionToken()?requestSession(controller.signal):null;
+      const pending=fresh?.then(value=>({value}),error=>({error}));
+      const [pageModule,layout]=await Promise.all([route.load(),loadLayout(route.layout as Section)]);
+      async function paint(snapshot:PageSnapshot|null,refreshing:boolean){
+        if(cancelled||snapshot&&!currentPage(snapshot))return;
+        if(snapshot)activatePage(snapshot);
+        const view=await pageModule.default({...props,...(snapshot?{pageData:snapshot.payload.data}:{})});
+        const content=await layout(view,runtime.user);
+        if(cancelled||snapshot&&!currentPage(snapshot))return;
+        setScreen({key:screenKey,content});setBusy(refreshing);
+        const metadata="metadata" in pageModule?pageModule.metadata as {title?:unknown}:undefined;
+        document.title=typeof metadata?.title==="string"?metadata.title+" · Track-and-Trace":"Track-and-Trace";
+        if(lastPath.current!==window.location.pathname){
+          lastPath.current=window.location.pathname;
+          requestAnimationFrame(()=>window.location.hash?document.getElementById(window.location.hash.slice(1))?.scrollIntoView():window.scrollTo(0,0));
+        }
       }
-      const pageModule=await route.load();
-      const view=await pageModule.default({params:Promise.resolve(params),searchParams:Promise.resolve(search)});
-      let content:ReactNode=view;
-      if(route.layout==="user"||route.layout==="admin"){
-        if(!runtime.user)throw new NavigationSignal("/login");
-        content=<AppShell user={runtime.user} section={route.layout}>{view}</AppShell>;
-      }else if(route.layout==="auth")content=<AuthLayout>{view}</AuthLayout>;
-      else content=await PublicLayout({children:view});
+      if(cached)await paint(cached,true);
+      if(!pending){await paint(null,false);return;}
+      const result=await pending;
       if(cancelled)return;
-      setScreen(content);
-      const metadata="metadata" in pageModule ? pageModule.metadata as {title?:unknown} : undefined;
-      const title=metadata?.title;
-      document.title=typeof title==="string"?title+" · Track-and-Trace":"Track-and-Trace";
-      setBusy(false);
-      if(lastPath.current!==window.location.pathname){
-        lastPath.current=window.location.pathname;
-        requestAnimationFrame(()=>window.location.hash?document.getElementById(window.location.hash.slice(1))?.scrollIntoView():window.scrollTo(0,0));
-      }
+      if("error"in result)throw result.error;
+      if(!currentPage(result.value)){setBusy(false);return;}
+      activatePage(result.value);
+      if(cached?.body===result.value.body){setBusy(false);return;}
+      await paint(result.value,false);
     }
     load().catch(e=>{
       if(cancelled)return;
       if(e instanceof NavigationSignal){
-        if(e.missing){setScreen(<NotFound/>);setBusy(false);}
+        if(e.missing){setScreen({key:screenKey,content:<NotFound/>});setBusy(false);}
         else navigate(e.destination,true);
+      }else if(e instanceof DOMException&&e.name==="AbortError"){
+        setBusy(false);
       }else {setError(e instanceof Error?e.message:"Unable to load this screen.");setBusy(false);}
     });
-    return ()=>{cancelled=true;};
+    return ()=>{cancelled=true;controller.abort();};
   },[location]);
   useEffect(()=>{
     const onClick=(event:MouseEvent)=>{
@@ -91,17 +93,22 @@ function App(){
     };
     document.addEventListener("click",onClick,true);
     document.addEventListener("submit",onSubmit);
-    return ()=>{document.removeEventListener("click",onClick,true);document.removeEventListener("submit",onSubmit);};
+    const onVisible=()=>{if(document.visibilityState==="visible"&&sessionToken()){invalidatePageData();notifyNavigation();}};
+    window.addEventListener("storage",onSessionStorage);
+    document.addEventListener("visibilitychange",onVisible);
+    return ()=>{
+      document.removeEventListener("click",onClick,true);document.removeEventListener("submit",onSubmit);
+      window.removeEventListener("storage",onSessionStorage);document.removeEventListener("visibilitychange",onVisible);
+    };
   },[]);
   return <>
     {busy&&<div role="status" aria-label="Loading" className="fixed inset-x-0 top-0 z-[100] h-1 animate-pulse bg-amber"><span className="sr-only">Loading…</span></div>}
     {error&&<div role="alert" className="mx-auto my-6 max-w-2xl rounded-2xl border border-line bg-paper p-5"><p>{error}</p><button className="mt-2 font-semibold underline" onClick={()=>window.location.reload()}>Try again</button></div>}
-    <div className="contents" key={window.location.pathname+window.location.search}>
-      {screen??<div className="mx-auto w-full max-w-6xl p-6"><Loading/></div>}
+    <div className="contents" key={screen?.key}>
+      {screen?.content??<div className="mx-auto w-full max-w-6xl p-6"><Loading/></div>}
     </div>
   </>;
 }
 window.addEventListener("unhandledrejection",event=>console.error(event.reason));
 createRoot(document.getElementById("root")!).render(<ScreenBoundary><App/></ScreenBoundary>);
 if("serviceWorker"in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
-void API_BASE;

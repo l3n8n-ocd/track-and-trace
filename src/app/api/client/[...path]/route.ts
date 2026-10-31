@@ -32,20 +32,19 @@ function failure(request: Request, error: unknown) {
   console.error("[client-api]", error);
   return json(request, { error: "The request could not be completed. Please try again." }, 500);
 }
-async function shell(user: SessionUser, data: Record<string, unknown>, admin: boolean) {
+async function shell(user: SessionUser, admin: boolean) {
   const [[{ value: unread }], counts] = await Promise.all([
     db.select({ value: count() }).from(schema.notification)
       .where(and(eq(schema.notification.userId, user.id), eq(schema.notification.isRead, false))),
     admin
       ? Promise.all([
-          typeof data.pendingReports === "number" ? data.pendingReports : pendingReportCount(),
-          data.claimCounts ? data.claimCounts as { pending: number } : adminClaimCounts(),
+          pendingReportCount(),
+          adminClaimCounts(),
         ]).then(([reports, claims]) => ({
           "/admin/reports": { value: reports, urgent: true },
           "/admin/claims": { value: claims.pending, urgent: true },
         }))
-      : (data.matches && !Array.isArray(data.matches) && typeof data.matches === "object" && "value" in data.matches
-          ? Promise.resolve(data.matches as { value: number }) : pendingMatchCount(user.id))
+      : pendingMatchCount(user.id)
         .then(matches => ({ "/matches": { value: matches.value, urgent: true }, "/notifications": { value: 0 } })),
   ]);
   if (!admin) Object.assign(counts, { "/notifications": { value: unread } });
@@ -59,7 +58,9 @@ export async function GET(request: Request, context: Context) {
   if (originDenied(request)) return json(request, { error: "Origin not allowed" }, 403);
   const path = (await context.params).path;
   try {
+    const started = performance.now();
     const user = await getSessionUser();
+    const authMs = performance.now() - started;
     return await withClientSession(user, async () => {
       const url = new URL(request.url);
       if (path[0] === "session") return json(request, { user });
@@ -86,9 +87,19 @@ export async function GET(request: Request, context: Context) {
         Boolean(v && typeof v === "object" && !Array.isArray(v) &&
           Object.entries(v).length < 40 && Object.values(v).every(x => typeof x === "string" && x.length <= 4000));
       if (!validRecord(params) || !validRecord(search)) return json(request, { error: "Invalid parameters" }, 400);
-      const data = await page.load({ params: Promise.resolve(params), searchParams: Promise.resolve(search) });
-      const nav = user && page.access !== "public" ? await shell(user, data as Record<string, unknown>, page.access === "admin") : null;
-      return json(request, { data: clientData(data, user), user, shell: nav, cloudName: env.CLOUDINARY_CLOUD_NAME ?? "" });
+      let pageMs = 0, navMs = 0;
+      const timed = async <T,>(load: () => Promise<T>, record: (ms: number) => void) => {
+        const start = performance.now();
+        try { return await load(); } finally { record(performance.now() - start); }
+      };
+      const [data, nav] = await Promise.all([
+        timed(() => page.load({ params: Promise.resolve(params), searchParams: Promise.resolve(search) }), ms => { pageMs = ms; }),
+        user && page.access !== "public"
+          ? timed(() => shell(user, page.access === "admin"), ms => { navMs = ms; }) : null,
+      ]);
+      const response = json(request, { data: clientData(data, user), user, shell: nav, cloudName: env.CLOUDINARY_CLOUD_NAME ?? "" });
+      response.headers.set("Server-Timing", `auth;dur=${authMs.toFixed(1)}, page;dur=${pageMs.toFixed(1)}, nav;dur=${navMs.toFixed(1)}, total;dur=${(performance.now() - started).toFixed(1)}`);
+      return response;
     });
   } catch (error) { return failure(request, error); }
 }

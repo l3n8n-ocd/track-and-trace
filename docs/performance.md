@@ -65,3 +65,50 @@ The TiDB cluster's location remains unverified; the repository does not
 contain its production hostname. Function-to-database distance can still
 affect data-dependent requests, so Singapore is not a guarantee of optimal
 database latency.
+
+## Firebase page navigation
+
+The static frontend starts page-data requests in parallel with lazy page and
+layout imports. Links prepare destination code on pointer hover, keyboard
+focus, or touch; this never fetches personal data or executes an action.
+Data Saver disables this preparation. Public visitors do not download the
+authenticated navigation shell until it is needed.
+
+Selected list pages and registration keep up to 12 snapshots for ten seconds
+in the current tab's memory. Each visit always requests fresh authorized data;
+a valid snapshot can appear while that request runs. Different parameters and
+search filters have separate keys. Private HTTP responses remain `no-store`.
+Detail pages, proof files, profile, settings, and edit/new forms are excluded.
+
+Writes invalidate snapshots both before and after the request, including
+pending older reads. Account changes and sign-out discard them. Other tabs
+receive an invalidation signal; returning to a signed-in tab also refreshes its
+data. Session revocation is checked on every visit, even when a snapshot is
+shown first. An external change may briefly show the previous list until the
+fresh response arrives; this is not offline storage or an authorization cache.
+
+Page queries and navigation queries also run concurrently on the API. Shared
+count promises are memoized only inside that validated API request, preserving
+React's existing render memoization for the original Next.js pages. Counts and
+session checks are never cached across backend requests. `Server-Timing`
+reports authentication, page, navigation, and total durations for measurement.
+Allowed origins can reuse CORS preflight permission for 600 seconds; this does
+not cache page responses or bypass authentication.
+
+The frontend preloads smaller variable fonts retaining the originals' full
+character coverage, Archivo width axis, optical sizing, and UI weights
+400–900. Together the two files shrink from 152,652 to 124,244 bytes (18.6%).
+Original fonts and licenses remain available. Regenerate optimized assets with
+`scripts/optimize-frontend-fonts.py` when font usage changes. A below-fold
+illustration is lazy loaded, and an API preconnection hint starts TLS earlier.
+
+Validation uses disposable local accounts and a MariaDB database: 36 unit tests,
+24 static frontend browser tests, lint, both type checks, and production builds.
+Navigation tests hold an API response to check immediate cached rendering,
+subsequent fresh content, mutation invalidation, session revocation, and
+cross-tab sign-out. They also verify that hovering triggers no API requests
+and that a page visit does not fetch its loader twice. Existing browser tests
+exercise the complete report, match, claim, and release workflow.
+
+These changes retain Firebase Spark, Vercel Hobby, and the existing database;
+they introduce no paid service, schema migration, or database migration.

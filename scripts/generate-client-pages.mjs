@@ -57,7 +57,7 @@ for (const [id, config] of Object.entries(spec)) {
   const route = '/' + id.split('/').filter(s => !s.startsWith('(')).join('/');
   routes.push('{path:' + JSON.stringify(route) + ',id:' + JSON.stringify(id) +
     ',layout:' + JSON.stringify(id.startsWith('admin') ? 'admin' : id.startsWith('(app)') ? 'user' : id.startsWith('(auth)') ? 'auth' : 'public') +
-    ',guestData:' + JSON.stringify(config.guestData ?? (config.remove.length ? null : {})) +
+    ',serverData:' + Boolean(config.remove.length) +
     ',load:()=>import("./views/' + key + '.tsx")}');
 }
 write(path.join(root, 'src/server/client-registry.generated.ts'),

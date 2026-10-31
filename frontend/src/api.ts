@@ -2,22 +2,45 @@ import type { SessionUser } from "@/lib/session";
 import type { NavCounts } from "@/components/nav-links";
 import type { ClientPageProps } from "./types";
 import { navigate, NavigationSignal, notifyNavigation } from "./navigation";
+import { PageCache, type CacheScope } from "./page-cache";
 
 export const API_BASE = (import.meta.env.VITE_API_BASE_URL || "https://track-and-trace-ucp.vercel.app").replace(/\/$/,"");
 const TOKEN_KEY="track-and-trace-session";
+const UPDATE_KEY="track-and-trace-update";
+type PagePayload={data:unknown;user:SessionUser|null;shell:typeof runtime.shell;cloudName:string;redirect?:string;notFound?:boolean;error?:string};
+export type PageSnapshot={payload:PagePayload;status:number;body:string;scope:CacheScope};
+const pages=new PageCache<PageSnapshot>();
+const cacheablePages=new Set([
+  "(auth)/register","(app)/dashboard","(app)/reports","(app)/claims","(app)/matches",
+  "(app)/notifications","(app)/search","admin","admin/reports","admin/claims",
+  "admin/users","admin/records","admin/announcements",
+]);
 export const runtime: {user:SessionUser|null;shell:{unread:number;counts:NavCounts}|null;cloudName:string} =
   {user:null,shell:null,cloudName:""};
 export function sessionToken() { return localStorage.getItem(TOKEN_KEY); }
 function saveToken(token: string|null) {
   if(token)localStorage.setItem(TOKEN_KEY,token);else localStorage.removeItem(TOKEN_KEY);
+  pages.scope(token);
+}
+export function invalidatePageData(broadcast=false) {
+  pages.invalidate();
+  if(broadcast)localStorage.setItem(UPDATE_KEY,Date.now()+":"+Math.random());
+}
+export function onSessionStorage(event:StorageEvent) {
+  if(event.key!==TOKEN_KEY&&event.key!==UPDATE_KEY&&event.key!==null)return;
+  invalidatePageData();
+  runtime.user=null;runtime.shell=null;
+  notifyNavigation();
 }
 export async function apiFetch(url:string,options:RequestInit={}) {
   const headers=new Headers(options.headers);
   const token=sessionToken();
+  const scope=pages.scope(token);
   if(token)headers.set("Authorization","Bearer "+token);
   const response=await fetch(API_BASE+url,{...options,headers,credentials:"omit"});
   const changed=response.headers.get("set-auth-token");
-  if(changed)saveToken(changed);
+  // A late response must not restore a session after sign-out or account switch.
+  if(changed&&sessionToken()===token&&pages.current(scope))saveToken(changed);
   return response;
 }
 function revive(_key:string,value:unknown):unknown {
@@ -28,21 +51,60 @@ function revive(_key:string,value:unknown):unknown {
   if(tagged.$type==="Set")return new Set(tagged.values);
   return value;
 }
-export async function loadPage<T>(id:string,props:ClientPageProps):Promise<T> {
-  if(!sessionToken()&&(id==="(public)"||id==="(auth)/login")){runtime.user=null;return {user:null} as T;}
-  const query=new URLSearchParams({id,params:JSON.stringify(await props.params),search:JSON.stringify(await props.searchParams)});
-  const response=await apiFetch("/api/client/page?"+query);
-  const payload=JSON.parse(await response.text(),revive);
+function pageQuery(id:string,params:unknown,search:unknown) {
+  return new URLSearchParams({id,params:JSON.stringify(params),search:JSON.stringify(search)}).toString();
+}
+export function cachedPage(id:string,params:unknown,search:unknown) {
+  if(!cacheablePages.has(id))return;
+  return pages.get(pageQuery(id,params,search),pages.scope(sessionToken()));
+}
+export function currentPage(snapshot:PageSnapshot) {
+  pages.scope(sessionToken());
+  return pages.current(snapshot.scope);
+}
+export async function requestPage(id:string,props:ClientPageProps,signal?:AbortSignal):Promise<PageSnapshot> {
+  const [params,search]=await Promise.all([props.params,props.searchParams]);
+  let scope=pages.scope(sessionToken());
+  if(!scope.identity&&(id==="(public)"||id==="(auth)/login"))return {
+    payload:{data:{user:null},user:null,shell:null,cloudName:""},status:200,body:"guest",scope,
+  };
+  const query=pageQuery(id,params,search);
+  const response=await apiFetch("/api/client/page?"+query,{signal});
+  const body=await response.text();
+  const payload=JSON.parse(body,revive) as PagePayload;
+  if((response.status===401||response.status===403)&&pages.current(scope)&&sessionToken()===scope.identity){
+    pages.invalidate();scope=pages.scope(sessionToken());
+  }
+  const snapshot={payload,status:response.status,body,scope};
+  if(response.ok&&!payload.redirect&&!payload.notFound&&cacheablePages.has(id))pages.set(query,scope,snapshot);
+  return snapshot;
+}
+export async function requestSession(signal?:AbortSignal):Promise<PageSnapshot> {
+  const scope=pages.scope(sessionToken());
+  const response=await apiFetch("/api/client/session",{signal});
+  if(!response.ok)throw new Error("Unable to check your session.");
+  const {user}=await response.json();
+  return {payload:{data:{},user,shell:null,cloudName:runtime.cloudName},status:200,body:"session",scope};
+}
+export function activatePage(snapshot:PageSnapshot) {
+  if(!currentPage(snapshot))throw new DOMException("This navigation was superseded.","AbortError");
+  const {payload,status}=snapshot;
   if(payload.redirect) {
-    if(response.status===401){saveToken(null);runtime.user=null;}
+    if(status===401){saveToken(null);runtime.user=null;runtime.shell=null;}
     throw new NavigationSignal(payload.redirect);
   }
   if(payload.notFound)throw new NavigationSignal("",true);
-  if(!response.ok)throw new Error(payload.error||"Unable to load this page.");
+  if(status<200||status>=300)throw new Error(payload.error||"Unable to load this page.");
   runtime.user=payload.user;runtime.shell=payload.shell;runtime.cloudName=payload.cloudName;
-  return payload.data;
+}
+export async function loadPage<T>(id:string,props:ClientPageProps):Promise<T> {
+  if("pageData"in props)return props.pageData as T;
+  const snapshot=await requestPage(id,props);
+  activatePage(snapshot);
+  return snapshot.payload.data as T;
 }
 export async function invokeAction(id:string,args:unknown[]):Promise<never|Record<string,unknown>|undefined> {
+  invalidatePageData();
   const body=new FormData();
   body.set("$action",id);
   body.set("$args",JSON.stringify(args.map((arg,index)=>{
@@ -50,8 +112,11 @@ export async function invokeAction(id:string,args:unknown[]):Promise<never|Recor
     for(const [key,value]of arg)body.append("$form"+index+":"+key,value);
     return {$form:true};
   })));
-  const response=await apiFetch("/api/client/action",{method:"POST",body});
-  const payload=JSON.parse(await response.text(),revive);
+  let response:Response,payload;
+  try {
+    response=await apiFetch("/api/client/action",{method:"POST",body});
+    payload=JSON.parse(await response.text(),revive);
+  } finally { invalidatePageData(true); }
   if(!response.ok)throw new Error(payload.error||"The action failed.");
   if(payload.sessionToken)saveToken(payload.sessionToken);
   if(payload.redirect) {
@@ -63,7 +128,10 @@ export async function invokeAction(id:string,args:unknown[]):Promise<never|Recor
   return payload.result ?? {};
 }
 export async function verifyEmail(token:string) {
-  const response=await apiFetch("/api/client/verify",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({token})});
+  invalidatePageData();
+  let response:Response;
+  try { response=await apiFetch("/api/client/verify",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({token})}); }
+  finally { invalidatePageData(true); }
   if(!response.ok)throw new Error("This verification link is invalid or has expired.");
   navigate(sessionToken()?"/dashboard":"/login?verified=1",true);
 }

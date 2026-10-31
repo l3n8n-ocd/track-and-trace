@@ -41,7 +41,13 @@ function browserBoundary() {
   };
 }
 export default defineConfig({
-  plugins:[browserBoundary(),react(),tailwindcss()],
+  plugins:[browserBoundary(),react(),tailwindcss(),{
+    name:'api-connection-hint',
+    transformIndexHtml(){
+      const origin=new URL(process.env.VITE_API_BASE_URL||'https://track-and-trace-ucp.vercel.app').origin;
+      return [{tag:'link',attrs:{rel:'preconnect',href:origin,crossorigin:''},injectTo:'head'}];
+    },
+  }],
   publicDir:path.join(import.meta.dirname,'public'),
   resolve:{
     alias:[

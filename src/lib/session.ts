@@ -15,9 +15,21 @@ export type SessionUser = {
   lastName: string;
 };
 
-const clientSession = new AsyncLocalStorage<{ user: SessionUser | null }>();
+const clientSession = new AsyncLocalStorage<{ user: SessionUser | null; memo: Map<string, Promise<unknown>> }>();
 export function withClientSession<T>(user: SessionUser | null, callback: () => Promise<T>) {
-  return clientSession.run({ user }, callback);
+  return clientSession.run({ user, memo: new Map() }, callback);
+}
+
+// React cache() does not memoize calls from Route Handlers. Keep API promises
+// inside their validated request context, never in a cross-request user cache.
+export function memoizeClientRequest<T>(key: string, load: () => Promise<T>): Promise<T> {
+  const current = clientSession.getStore();
+  if (!current) return load();
+  const existing = current.memo.get(key);
+  if (existing) return existing as Promise<T>;
+  const pending = Promise.resolve().then(load);
+  current.memo.set(key, pending);
+  return pending;
 }
 
 // Reads the current session once per request.

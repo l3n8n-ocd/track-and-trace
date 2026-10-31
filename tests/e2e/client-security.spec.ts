@@ -8,6 +8,7 @@ test.describe("static frontend API security",()=>{
     const good=await request.fetch(api+"/api/client/page",{method:"OPTIONS",headers:{Origin:"http://localhost:5173","Access-Control-Request-Method":"POST","Access-Control-Request-Headers":"authorization"}});
     expect(good.status()).toBe(204);
     expect(good.headers()["access-control-allow-origin"]).toBe("http://localhost:5173");
+    expect(good.headers()["access-control-max-age"]).toBe("600");
     const bad=await request.fetch(api+"/api/client/page",{method:"OPTIONS",headers:{Origin:"https://untrusted.example"}});
     expect(bad.status()).toBe(403);
     expect(bad.headers()["access-control-allow-origin"]).toBeUndefined();
@@ -36,6 +37,8 @@ test.describe("static frontend API security",()=>{
     const response=await page.request.get(api+"/api/client/page?id=%28app%29%2Fmatches&params=%7B%7D&search=%7B%7D",{headers:{Authorization:"Bearer "+token}});
     expect(response.status()).toBe(200);
     const body=await response.json();
+    expect(response.headers()["server-timing"]).toMatch(/auth;dur=.*page;dur=.*nav;dur=.*total;dur=/);
+    expect(response.headers()["cache-control"]).toContain("no-store");
     expect(body.data.rows.length).toBeGreaterThan(0);
     for(const row of body.data.rows){
       expect(row.found).not.toHaveProperty("hiddenDetails");
