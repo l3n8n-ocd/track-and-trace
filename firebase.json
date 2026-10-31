@@ -1,0 +1,24 @@
+{
+  "apphosting": [
+    {
+      "backendId": "track-and-trace",
+      "rootDir": ".",
+      "ignore": [
+        "node_modules",
+        ".git",
+        ".next",
+        ".data",
+        ".firebase",
+        ".vercel",
+        ".env",
+        ".env.*",
+        "public/uploads",
+        "test-results",
+        "coverage",
+        "*.tsbuildinfo",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ]
+    }
+  ]
+}

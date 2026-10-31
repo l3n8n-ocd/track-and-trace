@@ -1,0 +1,39 @@
+# Firebase App Hosting builds the existing Next.js app from this folder.
+# Store these values with apphosting:secrets:set; never put credentials here.
+runConfig:
+  cpu: 1
+  memoryMiB: 512
+  concurrency: 20
+  # Keep tag invalidation coherent with the current per-instance Next.js cache.
+  # Configure a shared cache before enabling multiple instances.
+  maxInstances: 1
+  minInstances: 0
+
+env:
+  - variable: DATABASE_URL
+    secret: track-and-trace-database-url
+    availability: [BUILD, RUNTIME]
+  - variable: BETTER_AUTH_SECRET
+    secret: track-and-trace-auth-secret
+    availability: [BUILD, RUNTIME]
+  - variable: APP_URL
+    secret: track-and-trace-app-url
+    availability: [BUILD, RUNTIME]
+  - variable: CRON_SECRET
+    secret: track-and-trace-cron-secret
+    availability: [RUNTIME]
+  - variable: CLOUDINARY_CLOUD_NAME
+    secret: track-and-trace-cloudinary-name
+    availability: [BUILD, RUNTIME]
+  - variable: CLOUDINARY_API_KEY
+    secret: track-and-trace-cloudinary-key
+    availability: [BUILD, RUNTIME]
+  - variable: CLOUDINARY_API_SECRET
+    secret: track-and-trace-cloudinary-secret
+    availability: [BUILD, RUNTIME]
+  - variable: SMTP_USER
+    secret: track-and-trace-smtp-user
+    availability: [BUILD, RUNTIME]
+  - variable: SMTP_PASSWORD
+    secret: track-and-trace-smtp-password
+    availability: [BUILD, RUNTIME]

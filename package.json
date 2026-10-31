@@ -7,6 +7,8 @@
     "build": "tsx scripts/db-setup.ts && next build",
     "build:app": "next build",
     "start": "next start",
+    "firebase:backend": "firebase apphosting:backends:create --backend track-and-trace --root-dir . --runtime nodejs22",
+    "firebase:deploy": "firebase deploy --only apphosting:track-and-trace",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
