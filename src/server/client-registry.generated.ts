@@ -1,0 +1,31 @@
+// Generated; access is checked again inside every loader.
+export type ClientPageProps={params:Promise<Record<string,string>>,searchParams:Promise<Record<string,string|string[]|undefined>>};
+export const clientPages = {
+"(app)/claims": { access: "user", load: async (props: ClientPageProps) => (await import("@/app/(app)/claims/client-loader.generated")).loadClientPage() },
+"(app)/claims/[id]": { access: "user", load: async (props: ClientPageProps) => (await import("@/app/(app)/claims/[id]/client-loader.generated")).loadClientPage(props as never) },
+"(app)/dashboard": { access: "user", load: async (props: ClientPageProps) => (await import("@/app/(app)/dashboard/client-loader.generated")).loadClientPage() },
+"(app)/items/[id]/claim": { access: "user", load: async (props: ClientPageProps) => (await import("@/app/(app)/items/[id]/claim/client-loader.generated")).loadClientPage(props as never) },
+"(app)/items/[id]": { access: "user", load: async (props: ClientPageProps) => (await import("@/app/(app)/items/[id]/client-loader.generated")).loadClientPage(props as never) },
+"(app)/matches": { access: "user", load: async (props: ClientPageProps) => (await import("@/app/(app)/matches/client-loader.generated")).loadClientPage() },
+"(app)/notifications": { access: "user", load: async (props: ClientPageProps) => (await import("@/app/(app)/notifications/client-loader.generated")).loadClientPage() },
+"(app)/profile": { access: "user", load: async (props: ClientPageProps) => (await import("@/app/(app)/profile/client-loader.generated")).loadClientPage() },
+"(app)/reports/new": { access: "user", load: async (props: ClientPageProps) => (await import("@/app/(app)/reports/new/client-loader.generated")).loadClientPage(props as never) },
+"(app)/reports": { access: "user", load: async (props: ClientPageProps) => (await import("@/app/(app)/reports/client-loader.generated")).loadClientPage(props as never) },
+"(app)/reports/[id]/edit": { access: "user", load: async (props: ClientPageProps) => (await import("@/app/(app)/reports/[id]/edit/client-loader.generated")).loadClientPage(props as never) },
+"(app)/reports/[id]": { access: "user", load: async (props: ClientPageProps) => (await import("@/app/(app)/reports/[id]/client-loader.generated")).loadClientPage(props as never) },
+"(app)/search": { access: "user", load: async (props: ClientPageProps) => (await import("@/app/(app)/search/client-loader.generated")).loadClientPage(props as never) },
+"(auth)/login": { access: "public", load: async (props: ClientPageProps) => (await import("@/app/(auth)/login/client-loader.generated")).loadClientPage(props as never) },
+"(auth)/register": { access: "public", load: async (props: ClientPageProps) => (await import("@/app/(auth)/register/client-loader.generated")).loadClientPage() },
+"(public)": { access: "public", load: async (props: ClientPageProps) => (await import("@/app/(public)/client-loader.generated")).loadClientPage() },
+"admin/announcements": { access: "admin", load: async (props: ClientPageProps) => (await import("@/app/admin/announcements/client-loader.generated")).loadClientPage(props as never) },
+"admin/claims": { access: "admin", load: async (props: ClientPageProps) => (await import("@/app/admin/claims/client-loader.generated")).loadClientPage(props as never) },
+"admin/claims/[id]": { access: "admin", load: async (props: ClientPageProps) => (await import("@/app/admin/claims/[id]/client-loader.generated")).loadClientPage(props as never) },
+"admin": { access: "admin", load: async (props: ClientPageProps) => (await import("@/app/admin/client-loader.generated")).loadClientPage() },
+"admin/records": { access: "admin", load: async (props: ClientPageProps) => (await import("@/app/admin/records/client-loader.generated")).loadClientPage(props as never) },
+"admin/reports": { access: "admin", load: async (props: ClientPageProps) => (await import("@/app/admin/reports/client-loader.generated")).loadClientPage(props as never) },
+"admin/reports/[id]": { access: "admin", load: async (props: ClientPageProps) => (await import("@/app/admin/reports/[id]/client-loader.generated")).loadClientPage(props as never) },
+"admin/settings": { access: "admin", load: async (props: ClientPageProps) => (await import("@/app/admin/settings/client-loader.generated")).loadClientPage(props as never) },
+"admin/users/new": { access: "admin", load: async (props: ClientPageProps) => (await import("@/app/admin/users/new/client-loader.generated")).loadClientPage(props as never) },
+"admin/users": { access: "admin", load: async (props: ClientPageProps) => (await import("@/app/admin/users/client-loader.generated")).loadClientPage(props as never) },
+"admin/users/[id]": { access: "admin", load: async (props: ClientPageProps) => (await import("@/app/admin/users/[id]/client-loader.generated")).loadClientPage(props as never) }
+};

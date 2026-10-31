@@ -8,6 +8,7 @@ import { z } from "zod";
 import { db, schema } from "@/db";
 import { auth } from "@/lib/auth";
 import { appUrl } from "@/lib/env";
+import { clientOrigin } from "@/lib/client-origin";
 
 export type FormState = {
   error?: string;
@@ -15,6 +16,11 @@ export type FormState = {
   message?: string;
   values?: Record<string, string>;
 };
+
+async function dashboardCallback() {
+  const origin = clientOrigin((await headers()).get("origin"));
+  return origin ? `${origin}/dashboard` : "/dashboard";
+}
 
 function fieldErrors(error: z.ZodError): Record<string, string> {
   const out: Record<string, string> = {};
@@ -122,7 +128,7 @@ export async function registerAction(_: FormState, formData: FormData): Promise<
         contactNo: d.contactNo || undefined,
         collegeId: d.collegeId,
         role: d.role,
-        callbackURL: "/dashboard",
+        callbackURL: await dashboardCallback(),
       },
       headers: await headers(),
     });
@@ -164,7 +170,7 @@ export async function loginAction(_: FormState, formData: FormData): Promise<For
   let role = "student";
   try {
     const res = await auth.api.signInEmail({
-      body: { email, password, callbackURL: "/dashboard" },
+      body: { email, password, callbackURL: await dashboardCallback() },
       headers: await headers(),
     });
     role = (res.user as { role?: string }).role ?? "student";
@@ -199,7 +205,7 @@ export async function forgotPasswordAction(_: FormState, formData: FormData): Pr
   if (!email.success) return { fieldErrors: { email: "Enter a valid email address" } };
   try {
     await auth.api.requestPasswordReset({
-      body: { email: email.data, redirectTo: `${appUrl()}/reset-password` },
+      body: { email: email.data, redirectTo: `${clientOrigin((await headers()).get("origin")) ?? appUrl()}/reset-password` },
       headers: await headers(),
     });
   } catch (error) {
@@ -243,7 +249,7 @@ export async function resendVerificationAction(_: FormState, formData: FormData)
   if (!email.success) return { error: "Enter a valid email address" };
   try {
     await auth.api.sendVerificationEmail({
-      body: { email: email.data, callbackURL: "/dashboard" },
+      body: { email: email.data, callbackURL: await dashboardCallback() },
       headers: await headers(),
     });
   } catch {

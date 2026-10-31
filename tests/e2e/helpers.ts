@@ -21,7 +21,7 @@ export async function closeDb() {
   pool = null;
 }
 
-export async function register(page: Page, who: { first: string; email: string; idNumber: string }) {
+export async function register(page: Page, who: { first: string; email: string; idNumber: string }, verifyDirectly = true) {
   await page.goto("/register");
   await page.selectOption("#role", "student");
   await page.fill("#firstName", who.first);
@@ -37,7 +37,7 @@ export async function register(page: Page, who: { first: string; email: string; 
   await page.click("button[type=submit]");
   await expect(page).toHaveURL(/verify-email/);
   // Tests can't read the inbox, so mark the email verified directly.
-  await db().query("update user set email_verified = 1 where email = ?", [who.email]);
+  if (verifyDirectly) await db().query("update user set email_verified = 1 where email = ?", [who.email]);
 }
 
 export async function login(page: Page, email: string, password = PASSWORD) {
@@ -50,4 +50,11 @@ export async function login(page: Page, email: string, password = PASSWORD) {
 
 export async function logout(page: Page) {
   await page.context().clearCookies();
+  if (process.env.E2E_API_BASE_URL) await page.evaluate(() => localStorage.removeItem("track-and-trace-session"));
+}
+
+export async function apiGet(page: Page, path: string) {
+  if (!process.env.E2E_API_BASE_URL) return page.request.get(path);
+  const token = await page.evaluate(() => localStorage.getItem("track-and-trace-session"));
+  return page.request.get(process.env.E2E_API_BASE_URL + path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
 }

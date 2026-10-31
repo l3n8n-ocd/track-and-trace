@@ -1,0 +1,9 @@
+@import "../../src/app/globals.css";
+@source "../../src";
+@source "../generated";
+
+@font-face{font-family:"DM Sans";font-style:normal;font-weight:100 1000;font-display:swap;src:url("/fonts/dm-sans.woff2") format("woff2")}
+@font-face{font-family:"Archivo";font-style:normal;font-weight:100 900;font-stretch:62% 125%;font-display:swap;src:url("/fonts/archivo.woff2") format("woff2")}
+:root{--font-dm-sans:"DM Sans",sans-serif;--font-archivo:"Archivo",sans-serif}
+html,body{min-height:100%;margin:0}
+#root{display:flex;min-height:100dvh;flex-direction:column}

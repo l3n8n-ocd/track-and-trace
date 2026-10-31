@@ -1,116 +1,127 @@
-# Deploy this local folder to Firebase
+# Free-only Firebase frontend + Vercel backend
 
-Firebase project: `track-and-trace-bulsu-2026` (Track-and-Trace).
-Backend ID: `track-and-trace`.
+This setup uses **Firebase Hosting on Spark**, **Vercel Hobby**, and the existing
+TiDB Cloud Starter and Cloudinary free-tier services. It does not use Firebase
+App Hosting, Cloud Functions, Cloud Run, Cloud Scheduler, Secret Manager, or
+Blaze billing. Usage must stay within each provider's free-plan limits.
 
-This is a complete Git clone, starting from main commit
-`fb0b6948847ebc8c61bc65a92d83adbbb651cf45`, including the merged performance
-fixes and the registration error-message fix. Firebase configuration lives
-on the local `firebase/local-app-hosting` branch. The GitHub remote is retained
-for normal source control, but deployments upload this local folder directly.
+Firebase project: track-and-trace-bulsu-2026.
+Frontend URL: https://track-and-trace-bulsu-2026.web.app
+Backend URL: https://track-and-trace-ucp.vercel.app
 
-This step moves website hosting. The existing TiDB/MySQL database, Better Auth
-accounts, Cloudinary files, and SMTP email service remain in use. Git does not
-contain the production database contents, uploaded files, or deployment secrets.
+The repository is a full Git clone. The existing Next.js application remains
+the backend and continues to support its original pages. A separate static
+React frontend uses the same page markup, forms, and protected actions through
+the new authenticated JSON API.
 
-## Before the first deployment
+## Install and run locally
 
-1. Enable the Blaze plan for this project:
-   https://console.firebase.google.com/project/track-and-trace-bulsu-2026/usage/details
-   App Hosting requires linked billing. No billing account was linked by this setup.
-2. Confirm the existing TiDB cluster region, then choose an App Hosting region
-   close to it. Singapore is `asia-southeast1`; do not assume the database is
-   there. The backend has not been created with a guessed region.
-3. Create the backend from this folder, supplying the chosen region:
+Run from this project folder:
 
-   ```powershell
-   npm run firebase:backend -- --primary-region YOUR_CONFIRMED_REGION
-   ```
+    npm ci
+    npm ci --prefix frontend
 
-   The globally installed Firebase CLI is already signed in on this computer.
-   On another computer, install `firebase-tools` and run `firebase login` first.
-4. Store the values below in Secret Manager. Use the values from the current
-   deployment for the database, authentication, Cloudinary, and email so the
-   new host continues to use the same accounts and files. Do not paste them in
-   chat, commit them, or copy the old temporary local-test credentials.
+Copy .env.example to .env.local and set your development database and other
+development-service values. For local cross-origin testing also set:
 
-   | Application variable | Firebase secret name |
-   | --- | --- |
-   | DATABASE_URL | track-and-trace-database-url |
-   | BETTER_AUTH_SECRET | track-and-trace-auth-secret |
-   | APP_URL | track-and-trace-app-url |
-   | CRON_SECRET | track-and-trace-cron-secret |
-   | CLOUDINARY_CLOUD_NAME | track-and-trace-cloudinary-name |
-   | CLOUDINARY_API_KEY | track-and-trace-cloudinary-key |
-   | CLOUDINARY_API_SECRET | track-and-trace-cloudinary-secret |
-   | SMTP_USER | track-and-trace-smtp-user |
-   | SMTP_PASSWORD | track-and-trace-smtp-password |
+    APP_URL=http://localhost:3000
+    CLIENT_APP_URL=http://localhost:5173
 
-   Set each secret using the Firebase console or the following interactive
-   command, replacing the secret name for each row:
+Start the Next.js backend with npm run dev. In a second terminal, set the
+public backend address and start the static frontend:
 
-   ```powershell
-   firebase apphosting:secrets:set track-and-trace-database-url
-   ```
+    $env:VITE_API_BASE_URL="http://localhost:3000"
+    npm run frontend:dev
 
-   Grant the new backend access when prompted. `APP_URL` must be the backend's
-   actual public HTTPS address shown by Firebase, so email links and trusted
-   origins point to the new website. To inspect that address after creating
-   the backend, run:
+Open http://localhost:5173. VITE_API_BASE_URL is public configuration; no
+database password, authentication secret, Cloudinary key, or SMTP password
+belongs in frontend environment variables or source.
 
-   ```powershell
-   firebase apphosting:backends:get track-and-trace
-   ```
+## Deploy the backend first
 
-## Deploy from this folder
+Deploy the repository root to the existing Vercel Hobby project. The existing
+database, authentication, Cloudinary, email, and cron environment variables
+stay on Vercel. The frontend's default backend address is the production URL
+above. APP_URL on Vercel continues to name that backend URL.
 
-```powershell
-npm ci
-npm run firebase:deploy
-```
+The backend allows only this Firebase project's web.app and firebaseapp.com
+origins by default. To use a different frontend or a local test deployment,
+set CLIENT_APP_URL on that backend explicitly.
 
-Firebase uploads the source, builds it in Cloud Build, and deploys the server
-to Cloud Run through App Hosting. `.git`, local environment files, installed
-dependencies, build output, and local test uploads are excluded from uploads.
+Verify the /api/client/session and public registration page-data endpoints
+before publishing the frontend. The Firebase frontend depends on the new
+backend API being deployed.
 
-The initial configuration permits one server instance so reference-list cache
-invalidation stays coherent with the current Next.js configuration. Configure
-a shared cache before increasing `maxInstances`. `minInstances: 0` allows
-scale-to-zero; keeping an instance warm is a separate billing/performance choice.
+## Deploy only the free static frontend
 
-The existing `build` command applies versioned database migrations and seeds
-missing reference data before building Next.js. Use the existing database
-connection to retain current records; take the usual database backup before
-the first deployment that applies new migrations. Existing administrator
-accounts remain in the database, so administrator seed credentials are not
-required when reusing it.
+The Firebase CLI is already signed in on this computer and .firebaserc
+selects the dedicated project. On another computer, install firebase-tools
+and run firebase login first.
 
-After deployment, verify login, reporting, photos, matching, claiming,
-private proof downloads, admin actions, notifications, and verification/reset
-email links before directing users to the Firebase URL.
+For production, remove the local VITE_API_BASE_URL override (or explicitly set
+it to the production backend URL), then run:
 
-## Preserve the daily job
+    npm run firebase:deploy
 
-Firebase does not execute the Vercel-specific `vercel.json` cron schedule.
-Before retiring the Vercel deployment, configure Cloud Scheduler to send a
-GET request to `APP_URL/api/cron/daily` once daily at `0 16 * * *` in UTC
-(midnight in Asia/Manila), with the header:
+This builds the static frontend and runs firebase deploy --only hosting.
+The firebase.json file contains a static public directory and SPA rewrites only.
+There are no paid backend rewrites or App Hosting targets. No billing account
+is required for this deployment.
 
-```text
-Authorization: Bearer <the configured CRON_SECRET>
-```
+All source files remain in this folder. Firebase receives only
+frontend/dist, not the server code or secrets. Local test uploads are excluded
+from the copied public assets.
 
-Keep the actual header value in the scheduler's protected configuration.
-Do not put the secret in this document or source control. Verify unauthorized
-requests return 401 and an authorized test run returns `ok: true`. Once the
-Firebase job is verified, retire the old Vercel schedule so it runs only once.
+## Preserved behavior and security
 
-## Local development
+- Existing users, roles, verification, password reset, account deactivation,
+  reports, matching, claims, proof files, administration, and exports remain
+  implemented on the backend.
+- The frontend exchanges a valid login for a signed Better Auth session token.
+  API requests send it in an Authorization header rather than relying on
+  cross-site cookies. Revoked and deactivated sessions remain invalid.
+- Each data loader and action retains its original permission checks. The
+  API additionally checks page access and origin and redacts hidden finder
+  details and private file storage paths before returning JSON.
+- Private proof files are downloaded through authenticated backend endpoints.
+- Verification and reset emails generated by frontend requests return users
+  to the Firebase frontend.
+- The daily Vercel cron remains in vercel.json. Matching and scheduled jobs
+  continue on Vercel; Firebase Cloud Scheduler is not needed.
+- Shared dropdown edits still invalidate server caches immediately.
 
-Copy `.env.example` to `.env.local` and enter your development-service values,
-then run `npm run dev`. Local environment files are ignored by Git and by the
-Firebase source deployment. Production secrets are configured separately.
+## Maintaining shared screens
+
+The frontend/tools/pages.json file identifies the reviewed server-data statements
+for each screen. npm run client:generate creates server loader modules and
+static page views from the original src/app pages. The generator keeps the
+JSX and form components shared instead of maintaining two versions.
+
+After changing a page's data-loading code, review its loader definition,
+regenerate, and run the checks below. Generated loader modules are committed
+so backend deployments are self-contained. Browser builds refuse imports
+of authentication configuration, database connections, or server loaders.
+
+## Checks
+
+    npm run lint
+    npm run typecheck
+    npm run frontend:typecheck
+    npm test
+    npm run build
+    npm run frontend:build
+
+Browser tests can target either the original backend UI or the static frontend.
+With the backend at port 3000 and frontend at port 5173:
+
+    $env:E2E_BASE_URL="http://localhost:5173"
+    $env:E2E_API_BASE_URL="http://localhost:3000"
+    npm run test:e2e
+
+Use a disposable local database for tests. The source repository does not
+contain production database contents, production uploads, or deployment secrets.
 
 References:
-- https://firebase.google.com/docs/app-hosting/alt-deploy
-- https://firebase.google.com/docs/app-hosting/configure
+- https://firebase.google.com/docs/hosting/quickstart
+- https://firebase.google.com/docs/projects/billing/firebase-pricing-plans
+- https://vercel.com/docs/plans/hobby

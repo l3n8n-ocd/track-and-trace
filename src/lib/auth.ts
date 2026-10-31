@@ -2,13 +2,15 @@ import "server-only";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
+import { bearer } from "better-auth/plugins";
+import { clientOrigins, verificationLink } from "./client-origin";
 import { db, schema } from "@/db";
 import { sendEmail } from "./email";
 import { appUrl, env, trustedOrigins } from "./env";
 
 export const auth = betterAuth({
   baseURL: appUrl(),
-  trustedOrigins: trustedOrigins(),
+  trustedOrigins: [...trustedOrigins(), ...clientOrigins()],
   secret: env.BETTER_AUTH_SECRET,
   // Registration and profile changes go through the app's server actions,
   // which also write the student/faculty/staff record and check consent.
@@ -104,7 +106,7 @@ export const auth = betterAuth({
           `Hi ${user.name},`,
           "Thanks for registering with Track-and-Trace. Confirm your email to start reporting and claiming items.",
         ],
-        action: { label: "Verify email", url },
+        action: { label: "Verify email", url: verificationLink(url) },
       });
     },
   },
@@ -126,7 +128,7 @@ export const auth = betterAuth({
   advanced: {
     database: { generateId: () => crypto.randomUUID() },
   },
-  plugins: [nextCookies()],
+  plugins: [bearer({ requireSignature: true }), nextCookies()],
 });
 
 export type AuthSession = typeof auth.$Infer.Session;

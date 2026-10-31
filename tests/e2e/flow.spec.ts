@@ -1,6 +1,6 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
-import { ADMIN, closeDb, db, login, logout, register, run } from "./helpers";
+import { ADMIN, apiGet, closeDb, db, login, logout, register, run } from "./helpers";
 
 const owner = { first: "Owner", email: `owner-${run}@example.com`, idNumber: `O-${run}` };
 const finder = { first: "Finder", email: `finder-${run}@example.com`, idNumber: `F-${run}` };
@@ -69,7 +69,7 @@ test.describe.serial("report → match → claim → release", () => {
     await expect(page.getByText("Initials JD")).toHaveCount(0);
     await page.goto("/admin");
     await expect(page).toHaveURL(/\/dashboard/);
-    const exp = await page.request.get("/api/admin/export?type=reports");
+    const exp = await apiGet(page, "/api/admin/export?type=reports");
     expect(exp.status()).toBe(403);
   });
 
@@ -93,6 +93,7 @@ test.describe.serial("report → match → claim → release", () => {
     await expect
       .poll(async () => {
         await page.goto("/matches");
+        await expect(page.getByRole("heading", { name: "Possible matches", exact: true })).toBeVisible();
         return page.getByText(`For your lost “${item}”`).count();
       }, { timeout: 15_000 })
       .toBeGreaterThan(0);
@@ -115,12 +116,12 @@ test.describe.serial("report → match → claim → release", () => {
     const [rows] = await db().query("select proof_id from claim_proof where claim_id = ? and file_path is not null", [claimId]);
     const proofId = (rows as { proof_id: number }[])[0].proof_id;
     await login(page, finder.email);
-    expect((await page.request.get(`/api/files/proof/${proofId}`)).status()).toBe(404);
+    expect((await apiGet(page, `/api/files/proof/${proofId}`)).status()).toBe(404);
     await page.goto(`/claims/${claimId}`);
     await expect(page.getByText("Page not found")).toBeVisible();
     await logout(page);
     await login(page, owner.email);
-    expect((await page.request.get(`/api/files/proof/${proofId}`)).status()).toBe(200);
+    expect((await apiGet(page, `/api/files/proof/${proofId}`)).status()).toBe(200);
   });
 
   test("admin asks for more proof, owner responds", async ({ page }) => {
