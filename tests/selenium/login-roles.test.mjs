@@ -89,7 +89,8 @@ async function click(locator) {
 }
 
 async function choose(selectId, optionText) {
-  await click(By.xpath(`//select[@id="${selectId}"]/option[normalize-space(.)="${optionText}"]`));
+  // Options may be grouped in <optgroup>s, so they aren't always direct children.
+  await click(By.xpath(`//select[@id="${selectId}"]//option[normalize-space(.)="${optionText}"]`));
 }
 
 const textOnPage = (text) => until.elementLocated(By.xpath(`//*[contains(normalize-space(.), "${text}")]`));
