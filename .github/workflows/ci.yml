@@ -97,18 +97,6 @@ jobs:
         run: >-
           node -e "const r=require('./test-results/newman.json').run.stats;
           console.log('::notice title=Newman::requests '+r.requests.total+', assertions '+r.assertions.total+', failed '+r.assertions.failed)" || true
-      - name: Selenium smoke test
-        run: |
-          mkdir -p test-results
-          set -o pipefail
-          npm run test:selenium -- --test-reporter=tap | tee test-results/selenium.tap
-      - name: Summarize Selenium results
-        if: always()
-        run: echo "::notice title=Selenium::$(grep -E '^# (tests|pass|fail|skipped)' test-results/selenium.tap | tr '\n' ' ')" || true
-      - name: Show Selenium failures as annotations
-        if: failure()
-        run: grep -E "not ok|error:|message:" test-results/selenium.tap | head -20 | sed 's/^/::error title=Selenium::/' || true
-
       - name: Static Firebase frontend against the API backend
         env:
           VITE_API_BASE_URL: http://localhost:3000
@@ -122,6 +110,20 @@ jobs:
           for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:5173 && break; sleep 1; done
           npx playwright install --with-deps chromium
           npm run test:e2e
+      # Selenium runs against the Firebase front end, the official site.
+      - name: Selenium WebDriver suite (Firebase front end)
+        env:
+          BASE_URL: http://localhost:5173
+        run: |
+          mkdir -p test-results
+          set -o pipefail
+          npm run test:selenium -- --test-reporter=tap | tee test-results/selenium.tap
+      - name: Summarize Selenium results
+        if: always()
+        run: echo "::notice title=Selenium::$(grep -E '^# (tests|pass|fail|skipped)' test-results/selenium.tap | tr '\n' ' ')" || true
+      - name: Show Selenium failures as annotations
+        if: failure()
+        run: grep -E "not ok|error:|message:" test-results/selenium.tap | head -20 | sed 's/^/::error title=Selenium::/' || true
 
       - name: Upload test evidence
         if: always()

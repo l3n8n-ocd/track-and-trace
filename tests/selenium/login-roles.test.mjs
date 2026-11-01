@@ -1,25 +1,48 @@
-// Selenium WebDriver proof of concept (IT302 Activity 8, Part C): a negative
-// login, a student login, role authorization, and an administrator login,
-// using explicit waits. A failing step saves a screenshot and the page HTML
-// to test-results/selenium/.
+// Selenium WebDriver suite (IT302 Activity 8 Part C, SIA testing portfolio):
+// login and role checks plus the main student features: filing a lost
+// report, searching, the privacy of found items, and claim validation.
+// Explicit waits throughout; a failing step saves a screenshot and the page
+// HTML to test-results/selenium/.
+//
+// Local or CI (needs the API test accounts: npx tsx tests/api/setup-users.ts):
 //   BASE_URL=http://localhost:3000 ADMIN_EMAIL=… ADMIN_PASSWORD=… npm run test:selenium
-// Needs the API test accounts (npx tsx tests/api/setup-users.ts).
+// Live site with a visible browser: see tests/selenium/run-live.ps1.
+//
+// Settings (environment variables):
+//   BASE_URL            site under test (Next.js app or the Firebase front end)
+//   STUDENT_EMAIL, STUDENT_PASSWORD   a verified student account
+//   ADMIN_EMAIL, ADMIN_PASSWORD       an administrator account (test skipped if unset)
+//   FOUND_ITEM_KEYWORD  a word in the name of a verified found item from another user
+//   FOUND_ITEM_CATEGORY that item's category exactly as the search filter lists it,
+//                       e.g. "All electronics" for a main category or "Umbrellas"
+//   FOUND_ITEM_HIDDEN   text from that item's hidden details (must never be shown)
+//   HEADED=1            show the Chrome window;  SLOW_MO=ms  pause between steps
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { after, before, test } from "node:test";
 import { Builder, By, until } from "selenium-webdriver";
 import chrome from "selenium-webdriver/chrome.js";
 
-const BASE = process.env.BASE_URL ?? "http://localhost:3000";
-const STUDENT = { email: "api.student@trackandtrace.test", password: process.env.API_TEST_PASSWORD ?? "ApiTest12345" };
+const BASE = (process.env.BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+const STUDENT = {
+  email: process.env.STUDENT_EMAIL ?? "api.student@trackandtrace.test",
+  password: process.env.STUDENT_PASSWORD ?? process.env.API_TEST_PASSWORD ?? "ApiTest12345",
+};
 const ADMIN = { email: process.env.ADMIN_EMAIL, password: process.env.ADMIN_PASSWORD };
-const WAIT = 15_000;
+const FOUND = {
+  keyword: process.env.FOUND_ITEM_KEYWORD ?? "Selenium test water bottle",
+  category: process.env.FOUND_ITEM_CATEGORY ?? "All electronics",
+  hidden: process.env.FOUND_ITEM_HIDDEN ?? "SEL-7781",
+};
+const SLOW_MO = Number(process.env.SLOW_MO ?? 0);
+const WAIT = 20_000;
 const OUT = "test-results/selenium";
 
 let driver;
 
 before(async () => {
-  const options = new chrome.Options().addArguments("--headless=new", "--no-sandbox", "--window-size=1280,800");
+  const options = new chrome.Options().addArguments("--no-sandbox", "--window-size=1280,900");
+  if (!process.env.HEADED) options.addArguments("--headless=new");
   if (process.env.CHROME_BIN) options.setChromeBinaryPath(process.env.CHROME_BIN);
   driver = await new Builder().forBrowser("chrome").setChromeOptions(options).build();
 });
@@ -41,48 +64,131 @@ async function step(name, fn) {
   }
 }
 
-async function logIn(email, password) {
-  await driver.manage().deleteAllCookies();
-  await driver.get(`${BASE}/login`);
-  // Streamed pages can have form elements in the DOM before they are visible.
-  // Wait for each control to be ready before interacting with it.
-  for (const [locator, value] of [[By.id("email"), email], [By.id("password"), password]]) {
-    const field = await driver.wait(until.elementLocated(locator), WAIT);
-    await driver.wait(until.elementIsVisible(field), WAIT);
-    await driver.wait(until.elementIsEnabled(field), WAIT);
-    await field.sendKeys(value);
-  }
-  const submit = await driver.wait(until.elementLocated(By.css("button[type=submit]")), WAIT);
-  await driver.wait(until.elementIsVisible(submit), WAIT);
-  await driver.wait(until.elementIsEnabled(submit), WAIT);
-  await submit.click();
+const pause = () => (SLOW_MO ? driver.sleep(SLOW_MO) : Promise.resolve());
+
+// Waits until an element is present, visible, and enabled. Pages render in
+// stages, so a control can exist before it can be used.
+async function ready(locator) {
+  const element = await driver.wait(until.elementLocated(locator), WAIT);
+  await driver.wait(until.elementIsVisible(element), WAIT);
+  await driver.wait(until.elementIsEnabled(element), WAIT);
+  return element;
+}
+
+async function type(locator, value) {
+  const field = await ready(locator);
+  await field.clear();
+  await field.sendKeys(value);
+  await pause();
+}
+
+async function click(locator) {
+  await (await ready(locator)).click();
+  await pause();
+}
+
+async function choose(selectId, optionText) {
+  await click(By.xpath(`//select[@id="${selectId}"]/option[normalize-space(.)="${optionText}"]`));
 }
 
 const textOnPage = (text) => until.elementLocated(By.xpath(`//*[contains(normalize-space(.), "${text}")]`));
+const button = (label) => By.xpath(`//button[normalize-space(.)="${label}"]`);
 
-test("a wrong password shows an error and stays on the login page", () =>
-  step("wrong-password", async () => {
+// Signs out (the Firebase front end keeps its session in browser storage,
+// the Next.js app in a cookie) and signs in again.
+async function logIn(email, password) {
+  await driver.get(`${BASE}/login`);
+  await driver.manage().deleteAllCookies();
+  await driver.executeScript("window.localStorage.clear(); window.sessionStorage.clear();");
+  await driver.navigate().refresh();
+  await type(By.id("email"), email);
+  await type(By.id("password"), password);
+  await click(By.css("button[type=submit]"));
+}
+
+test("SEL-01 a wrong password shows an error and stays on the login page", () =>
+  step("SEL-01-wrong-password", async () => {
     await logIn(STUDENT.email, "WrongPassword1");
     await driver.wait(textOnPage("Invalid email or password."), WAIT);
     assert.match(await driver.getCurrentUrl(), /\/login/);
   }));
 
-test("a student logs in and lands on the dashboard", () =>
-  step("student-login", async () => {
+test("SEL-02 a student logs in and lands on the dashboard", () =>
+  step("SEL-02-student-login", async () => {
     await logIn(STUDENT.email, STUDENT.password);
     await driver.wait(until.urlContains("/dashboard"), WAIT);
-    await driver.wait(textOnPage(", API."), WAIT);
+    await driver.wait(textOnPage("Your recent reports"), WAIT);
   }));
 
-test("a student who opens /admin is sent back to the dashboard", () =>
-  step("student-admin-redirect", async () => {
+test("SEL-03 a student who opens /admin is sent back to the dashboard", () =>
+  step("SEL-03-student-admin-redirect", async () => {
     await driver.get(`${BASE}/admin`);
     await driver.wait(until.urlContains("/dashboard"), WAIT);
     assert.doesNotMatch(await driver.getCurrentUrl(), /\/admin/);
   }));
 
-test("an administrator logs in and sees the admin overview", { skip: !ADMIN.email && "ADMIN_EMAIL not set" }, () =>
-  step("admin-login", async () => {
+test("SEL-05 a student files a lost item report", () =>
+  step("SEL-05-lost-report", async () => {
+    const name = `Selenium lost calculator ${Date.now()}`;
+    await driver.get(`${BASE}/reports/new?type=lost`);
+    await type(By.id("itemName"), name);
+    await click(By.css("#categoryId option:nth-child(2)"));
+    await type(By.id("description"), "Grey scientific calculator with a cracked cover.");
+    // The date field already holds today's date.
+    await click(By.css("#locationId option:nth-child(2)"));
+    await click(button("Submit lost report"));
+    await driver.wait(until.urlMatches(/\/reports\/\d+/), WAIT);
+    await driver.wait(textOnPage("Your report was submitted"), WAIT);
+    await driver.wait(textOnPage(name), WAIT);
+  }));
+
+test("SEL-06 search filters found items by keyword and category", () =>
+  step("SEL-06-search", async () => {
+    const itemLink = By.xpath(`//a[starts-with(@href, "/items/") and contains(normalize-space(.), "${FOUND.keyword}")]`);
+    await driver.get(`${BASE}/search`);
+    await type(By.id("q"), FOUND.keyword);
+    await choose("category", FOUND.category);
+    await click(By.css("form button[type=submit]"));
+    await driver.wait(until.urlContains("q="), WAIT);
+    await driver.wait(until.elementLocated(itemLink), WAIT);
+
+    // The same keyword under a category from another group finds nothing.
+    const other = await driver.executeScript(
+      `const options = [...document.querySelectorAll('#category option')];
+       const group = options.find(o => o.text.trim() === arguments[0])?.parentElement;
+       return options.find(o => o.value && o.parentElement !== group)?.text.trim();`,
+      FOUND.category,
+    );
+    await choose("category", other);
+    await click(By.css("form button[type=submit]"));
+    await driver.wait(textOnPage("No matching items"), WAIT);
+    assert.equal((await driver.findElements(itemLink)).length, 0);
+  }));
+
+test("SEL-07 a found item's page hides the finder and blurs photos", () =>
+  step("SEL-07-privacy", async () => {
+    await driver.get(`${BASE}/search?q=${encodeURIComponent(FOUND.keyword)}`);
+    await click(By.xpath(`//a[starts-with(@href, "/items/") and contains(normalize-space(.), "${FOUND.keyword}")]`));
+    await driver.wait(until.urlMatches(/\/items\/\d+$/), WAIT);
+    await driver.wait(textOnPage("Photos are blurred"), WAIT);
+    await driver.wait(textOnPage("This is mine, file a claim"), WAIT);
+    const html = await driver.getPageSource();
+    assert.ok(!html.includes(FOUND.hidden), "hidden details must not be on the page");
+    assert.ok(!/Reported by/i.test(html), "the finder must not be shown");
+  }));
+
+test("SEL-08 the claim form rejects a too-short proof description", () =>
+  step("SEL-08-claim-validation", async () => {
+    await click(By.xpath(`//a[normalize-space(.)="This is mine, file a claim"]`));
+    await driver.wait(until.urlMatches(/\/items\/\d+\/claim$/), WAIT);
+    await type(By.id("statement"), "mine");
+    await click(button("Submit claim"));
+    await driver.wait(textOnPage("at least a few sentences (20+ characters)"), WAIT);
+    assert.match(await driver.getCurrentUrl(), /\/claim$/);
+  }));
+
+test("SEL-04 an administrator logs in and sees the admin overview", { skip: !ADMIN.email && "ADMIN_EMAIL not set" }, () =>
+  step("SEL-04-admin-login", async () => {
     await logIn(ADMIN.email, ADMIN.password);
     await driver.wait(until.urlContains("/admin"), WAIT);
     await driver.wait(textOnPage("Claims to review"), WAIT);

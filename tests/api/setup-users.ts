@@ -14,6 +14,8 @@ import * as schema from "../../src/db/schema";
 
 config({ path: ".env.local" });
 
+const SELENIUM_HIDDEN_DETAIL = "Sticker with the code SEL-7781 under the cap";
+
 const API_USERS = {
   student: { email: "api.student@trackandtrace.test", verified: true },
   unverified: { email: "api.unverified@trackandtrace.test", verified: false },
@@ -40,6 +42,10 @@ async function main() {
   for (const { id } of old) {
     await db.delete(schema.session).where(eq(schema.session.userId, id));
     await db.delete(schema.account).where(eq(schema.account.userId, id));
+    // Claims on these accounts' reports (or by them) would block deleting the reports.
+    const reports = await db.select({ id: schema.report.id }).from(schema.report).where(eq(schema.report.userId, id));
+    if (reports.length) await db.delete(schema.claim).where(inArray(schema.claim.reportId, reports.map((r) => r.id)));
+    await db.delete(schema.claim).where(eq(schema.claim.claimantId, id));
     await db.delete(schema.report).where(eq(schema.report.userId, id));
     await db.delete(schema.student).where(eq(schema.student.userId, id));
     await db.delete(schema.user).where(eq(schema.user.id, id));
@@ -77,6 +83,21 @@ async function main() {
         categoryId: category.id,
         locationId: place.id,
         dateLostOrFound: new Date().toISOString().slice(0, 10),
+      });
+    } else {
+      // A verified found item from another account, for the Selenium search,
+      // privacy, and claim form tests.
+      await db.insert(schema.report).values({
+        userId: id,
+        reportType: "FOUND",
+        itemName: "Selenium test water bottle",
+        description: "Blue steel water bottle found in the library.",
+        hiddenDetails: SELENIUM_HIDDEN_DETAIL,
+        categoryId: category.id,
+        locationId: place.id,
+        dateLostOrFound: new Date().toISOString().slice(0, 10),
+        status: "VERIFIED",
+        dateVerified: new Date(),
       });
     }
   }
