@@ -23,7 +23,7 @@ $env:ADMIN_EMAIL = Read-Host "Admin email (leave empty to skip the admin test)"
 if ($env:ADMIN_EMAIL) { $env:ADMIN_PASSWORD = Read-Secret "Admin password" }
 Write-Host "Found item used for search, privacy, and claim tests (reported by STUDENT-B and verified by the office):"
 $env:FOUND_ITEM_KEYWORD = Read-Host "  Word from its name (e.g. umbrella)"
-$env:FOUND_ITEM_CATEGORY = Read-Host "  Its category exactly as the search filter shows it (e.g. Umbrellas or All electronics)"
+$env:FOUND_ITEM_CATEGORY = Read-Host "  Its category as the search filter shows it (press Enter to detect it automatically)"
 $env:FOUND_ITEM_HIDDEN = Read-Host "  A few words from its hidden details"
 $env:HEADED = "1"
 $env:SLOW_MO = "$SlowMo"

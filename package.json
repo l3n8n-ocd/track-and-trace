@@ -19,7 +19,8 @@
     "db:generate": "drizzle-kit generate",
     "db:setup": "tsx scripts/db-setup.ts",
     "test:selenium": "node --test tests/selenium/*.test.mjs",
-    "test:api": "newman run tests/api/track-and-trace.postman_collection.json --delay-request 3500"
+    "test:api": "newman run tests/api/track-and-trace.postman_collection.json --delay-request 3500",
+    "test:load": "node tests/load/load-test.mjs"
   },
   "dependencies": {
     "better-auth": "^1.7.12",

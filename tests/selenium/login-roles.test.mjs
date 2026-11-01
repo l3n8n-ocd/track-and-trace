@@ -13,8 +13,9 @@
 //   STUDENT_EMAIL, STUDENT_PASSWORD   a verified student account
 //   ADMIN_EMAIL, ADMIN_PASSWORD       an administrator account (test skipped if unset)
 //   FOUND_ITEM_KEYWORD  a word in the name of a verified found item from another user
-//   FOUND_ITEM_CATEGORY that item's category exactly as the search filter lists it,
-//                       e.g. "All electronics" for a main category or "Umbrellas"
+//   FOUND_ITEM_CATEGORY optional: that item's category exactly as the search filter
+//                       lists it ("Umbrellas", or "All electronics" for a main
+//                       category); read from the result card when not set
 //   FOUND_ITEM_HIDDEN   text from that item's hidden details (must never be shown)
 //   HEADED=1            show the Chrome window;  SLOW_MO=ms  pause between steps
 import assert from "node:assert/strict";
@@ -31,7 +32,7 @@ const STUDENT = {
 const ADMIN = { email: process.env.ADMIN_EMAIL, password: process.env.ADMIN_PASSWORD };
 const FOUND = {
   keyword: process.env.FOUND_ITEM_KEYWORD ?? "Selenium test water bottle",
-  category: process.env.FOUND_ITEM_CATEGORY ?? "All electronics",
+  category: process.env.FOUND_ITEM_CATEGORY ?? "",
   hidden: process.env.FOUND_ITEM_HIDDEN ?? "SEL-7781",
 };
 const SLOW_MO = Number(process.env.SLOW_MO ?? 0);
@@ -147,9 +148,27 @@ test("SEL-06 search filters found items by keyword and category", () =>
     const itemLink = By.xpath(`//a[starts-with(@href, "/items/") and contains(normalize-space(.), "${FOUND.keyword}")]`);
     await driver.get(`${BASE}/search`);
     await type(By.id("q"), FOUND.keyword);
-    await choose("category", FOUND.category);
     await click(By.css("form button[type=submit]"));
     await driver.wait(until.urlContains("q="), WAIT);
+    await driver.wait(until.elementLocated(itemLink), WAIT);
+
+    // Unless given, take the item's category from its result card: a
+    // sub-category is listed by name, a main category as "All <name>".
+    const category =
+      FOUND.category ||
+      (await driver.executeScript(
+        `const card = [...document.querySelectorAll('a[href^="/items/"]')]
+           .find(a => a.textContent.includes(arguments[0]))?.textContent.toLowerCase() ?? '';
+         const names = [...document.querySelectorAll('#category option')].filter(o => o.value).map(o => o.text.trim());
+         return names
+           .filter(n => card.includes(n.toLowerCase()) || (n.startsWith('All ') && card.includes(n.slice(4).toLowerCase())))
+           .sort((a, b) => b.length - a.length)[0];`,
+        FOUND.keyword,
+      ));
+    assert.ok(category, "could not tell the found item's category from its result card");
+    await choose("category", category);
+    await click(By.css("form button[type=submit]"));
+    await driver.wait(until.urlContains("category="), WAIT);
     await driver.wait(until.elementLocated(itemLink), WAIT);
 
     // The same keyword under a category from another group finds nothing.
@@ -157,7 +176,7 @@ test("SEL-06 search filters found items by keyword and category", () =>
       `const options = [...document.querySelectorAll('#category option')];
        const group = options.find(o => o.text.trim() === arguments[0])?.parentElement;
        return options.find(o => o.value && o.parentElement !== group)?.text.trim();`,
-      FOUND.category,
+      category,
     );
     await choose("category", other);
     await click(By.css("form button[type=submit]"));
