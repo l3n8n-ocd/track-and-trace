@@ -49,4 +49,12 @@ describe("shared verification email cooldown", () => {
       .toEqual([true, false, false, false, false]);
     expect(mock.transaction).toHaveBeenCalledTimes(5);
   });
+  it("preserves normal email delivery if the optional cooldown store is unavailable", async () => {
+    mock.transaction.mockRejectedValueOnce(new Error("Temporary store failure"));
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      expect(await reserveVerificationEmail("student@example.test", now)).toBe(true);
+      expect(warning).toHaveBeenCalledWith(expect.stringContaining("using normal email delivery"));
+    } finally { warning.mockRestore(); }
+  });
 });

@@ -10,6 +10,7 @@ Track-and-Trace uses the existing free Gmail SMTP account. The visible sender an
 - Automated messages identify themselves with the standard `Auto-Submitted` header. This prevents misleading manual-email behavior; it is not a spam-filter bypass.
 
 The existing `rate_limit` table stores cooldown keys as hashes of normalized email addresses. No database migration or paid service is required.
+If the cooldown store is temporarily unavailable, a warning is logged and normal email delivery continues. Required email verification is never disabled.
 
 ## What was verified
 
