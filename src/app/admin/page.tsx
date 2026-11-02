@@ -206,7 +206,7 @@ export default async function AdminHome() {
               {queueClaims.map((cl) => (
                 <li key={cl.id}>
                   <Link href={`/admin/claims/${cl.id}`} className="flex items-center gap-3 rounded-xl px-2 py-3 hover:bg-sand/60">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-rust-tint font-display text-xs font-bold text-rust">
+                    <span className="flex h-9 min-w-9 shrink-0 items-center justify-center whitespace-nowrap rounded-xl bg-rust-tint px-2 font-display text-xs font-bold tabular-nums text-rust">
                       #{cl.id}
                     </span>
                     <div className="min-w-0 flex-1">

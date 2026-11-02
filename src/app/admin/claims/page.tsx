@@ -92,7 +92,7 @@ export default async function AdminClaimsPage({ searchParams }: PageProps<"/admi
                   href={`/admin/claims/${claim.id}`}
                   className="group flex flex-wrap items-center gap-x-4 gap-y-2 p-4 transition-colors hover:bg-sand/50"
                 >
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-sand font-display text-sm font-bold text-crimson">
+                  <span className="flex h-11 min-w-11 shrink-0 items-center justify-center whitespace-nowrap rounded-xl bg-sand px-3 font-display text-sm font-bold tabular-nums text-crimson">
                     #{claim.id}
                   </span>
                   <div className="min-w-0 flex-1">
