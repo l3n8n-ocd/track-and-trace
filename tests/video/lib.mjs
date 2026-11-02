@@ -1,7 +1,7 @@
 // Shared pieces for the screen-recorded test runs: a visible browser with an
 // on-screen pointer, human-paced actions, a step log with screenshots, and
 // optional OBS control. See tests/video/README.md.
-import { mkdir, readdir, rename, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, readdir, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 // VIDEO_PLAYWRIGHT can point at another Playwright install whose browsers and
 // video encoder are already downloaded.
@@ -241,36 +241,67 @@ export class StepLog {
 }
 
 // OBS control through its WebSocket server (OBS → Tools → WebSocket Server Settings).
+// Recording is continuous: OBS is started once and keeps running across clips
+// and across separate commands, until it is stopped explicitly
+// (node tests/video/obs.mjs stop). Each clip is marked with its position in
+// the recording (timeline.md) and, where OBS supports it, a chapter marker.
 export class Recorder {
-  constructor(mode) {
+  constructor(mode, outDir) {
     this.mode = mode;
+    this.timeline = path.join(outDir, "timeline.md");
   }
 
   async connect() {
     if (this.mode !== "obs") return;
-    const { default: OBSWebSocket } = await import("obs-websocket-js");
+    const { default: OBSWebSocket } = await import("obs-websocket-js/json");
     this.obs = new OBSWebSocket();
-    await this.obs.connect(process.env.OBS_WEBSOCKET_URL ?? "ws://127.0.0.1:4455", process.env.OBS_WEBSOCKET_PASSWORD);
+    const url = process.env.OBS_WEBSOCKET_URL ?? "ws://127.0.0.1:4455";
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timed out")), 10_000));
+    try {
+      await Promise.race([this.obs.connect(url, process.env.OBS_WEBSOCKET_PASSWORD), timeout]);
+    } catch (error) {
+      throw new Error(`Couldn't connect to OBS at ${url} (${error.message}). Is OBS open, with the WebSocket server enabled and OBS_WEBSOCKET_PASSWORD set in tests/video/.env.accounts?`);
+    }
   }
 
-  async start(clip) {
+  // Starts OBS if it isn't recording yet; returns the current position.
+  async ensureRecording() {
+    let status = await this.obs.call("GetRecordStatus");
+    if (!status.outputActive) {
+      await this.obs.call("StartRecord");
+      await sleep(2000);
+      await appendFile(this.timeline, `\n## Recording started ${new Date().toLocaleString("en-PH", { timeZone: "Asia/Manila" })}\n\n| Time in recording | Clip | What |\n|---|---|---|\n`);
+      console.log("● OBS recording started");
+      status = await this.obs.call("GetRecordStatus");
+    }
+    return status.outputDuration ?? 0;
+  }
+
+  async mark(label, title = "") {
     if (this.mode !== "obs") return;
-    await this.obs.call("StartRecord");
-    await sleep(1500);
-    console.log(`● recording ${clip}`);
+    const ms = await this.ensureRecording();
+    const t = new Date(ms).toISOString().slice(11, 19);
+    await appendFile(this.timeline, `| ${t} | ${label} | ${title} |\n`);
+    await this.obs.call("CreateRecordChapter", { chapterName: label }).catch(() => {});
+    console.log(`● ${t}  ${label}`);
   }
 
-  // Stops OBS and renames its file to the clip ID, in OBS's recording folder.
-  async stop(clip) {
+  // Stops OBS; with a name, renames the file in OBS's recording folder.
+  async stop(name) {
     if (this.mode !== "obs") return null;
+    const status = await this.obs.call("GetRecordStatus");
+    if (!status.outputActive) return null;
     await sleep(1500);
     const { outputPath } = await this.obs.call("StopRecord");
-    await sleep(1500);
-    if (!outputPath) return null;
-    const target = path.join(path.dirname(outputPath), `${clip}${path.extname(outputPath)}`);
-    await rename(outputPath, target).catch(() => {});
-    console.log(`■ saved ${target}`);
-    return target;
+    await sleep(2000);
+    let file = outputPath;
+    if (outputPath && name) {
+      file = path.join(path.dirname(outputPath), `${name}${path.extname(outputPath)}`);
+      await rename(outputPath, file).catch(() => (file = outputPath));
+    }
+    await appendFile(this.timeline, `\nStopped. File: ${file ?? "(see OBS recording folder)"}\n`);
+    console.log(`■ OBS stopped: ${file}`);
+    return file;
   }
 
   async close() {

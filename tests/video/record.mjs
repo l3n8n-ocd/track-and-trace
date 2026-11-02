@@ -6,6 +6,8 @@
 // Options: --mode obs|none|video (default obs; none = rehearsal without recording),
 // --speed 1 (higher = slower).
 // Accounts come from tests/video/.env.accounts; see README.md.
+// OBS keeps recording after the run ends (continuous recording); stop it with
+//   node tests/video/obs.mjs stop "Video1-raw"
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
@@ -67,7 +69,7 @@ const statePath = path.join(outDir, "state.json");
 const state = JSON.parse(await readFile(statePath, "utf8").catch(() => "{}"));
 
 const session = new Session({ base: opts.base, mode: opts.mode, outDir: runDir, slowMo: Number(opts.speed) });
-const recorder = new Recorder(opts.mode);
+const recorder = new Recorder(opts.mode, outDir);
 const log = new StepLog(runDir);
 await recorder.connect();
 await session.start();
@@ -81,14 +83,13 @@ try {
     for (const key of used) await session.as(accounts[key]);
     const firstActor = session.contexts.get(used[0]);
     if (firstActor) await firstActor.front();
-    await recorder.start(clip.id);
+    await recorder.mark(clip.id, clip.title);
     try {
       await clip.run({ as: (key) => session.as(accounts[key]), log, state, accounts });
     } catch (error) {
       console.error(`  Stopped: ${String(error.message ?? error).split("\n")[0]}`);
       log.rows.push({ clip: clip.id, tc: "-", step: "-", account: "-", expected: "Clip runs to the end", actual: String(error.message ?? error).split("\n")[0], status: "Fail", screenshot: "" });
     }
-    await recorder.stop(clip.id);
     await writeFile(statePath, JSON.stringify(state, null, 2));
     if (opts.mode === "video") {
       // Built-in recording: one file per window, named after the clip.

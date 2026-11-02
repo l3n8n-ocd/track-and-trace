@@ -1,7 +1,7 @@
 # Screen-recorded test runs
 
 Runs the manual-testing clips from the Video Production Plan against the live
-site. The script really executes each test case in a visible Chrome window,
+site, in one continuous OBS recording. The script really executes each test case in a visible Chrome window,
 with an on-screen pointer and human-paced typing, while OBS records the
 screen. Each step is checked against the test case's expected result and
 written to an execution log (with screenshots) for marking Zephyr.
@@ -48,7 +48,13 @@ From the project folder:
 
 While it runs, **don't touch the mouse or keyboard**. Turn on Windows Focus mode so no pop-ups appear on screen.
 
-Each clip starts and stops OBS by itself. OBS's file is renamed to the clip ID (e.g. `SCR-V1-08a.mkv` or `.mp4`) in OBS's recording folder.
+**Recording is continuous.** OBS starts with the first clip and keeps recording through every later clip and command, including Selenium, `npm test`, and anything else in between, until you stop it:
+
+    node tests/video/obs.mjs mark SCR-V2-04b "Selenium suite"   # note where a step starts
+    node tests/video/obs.mjs status
+    node tests/video/obs.mjs stop Video1-raw                    # stop; the file is renamed
+
+Every clip's position in the recording goes to `test-results/video/timeline.md` (e.g. `00:12:40  SCR-V1-08a`). Where your OBS version supports chapter markers, they're added too. Use the timeline to find each clip when editing.
 
 ## Output
 
@@ -56,6 +62,8 @@ Each clip starts and stops OBS by itself. OBS's file is renamed to the clip ID (
 
 - `execution-log.md`: every step with expected result, actual result, Pass/Fail and screenshot. Use it to fill in Zephyr's Test Player.
 - `screenshots/`: one per step, to attach in Zephyr.
+
+`test-results/video/timeline.md`: where each clip starts in the continuous recording.
 
 `test-results/video/state.json` remembers the IDs created in part 1 (the found and lost reports) for part 2. Delete it to start a fresh story.
 
