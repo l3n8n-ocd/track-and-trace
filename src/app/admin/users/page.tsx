@@ -86,45 +86,51 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
           Try a different name, email, or ID number.
         </EmptyState>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-line bg-paper">
-          <table className="min-w-full text-sm max-md:block">
-            <thead className="bg-cream/70 text-left text-xs font-semibold uppercase tracking-wider text-ink-muted max-md:hidden">
+        <div className="min-w-0 rounded-2xl border border-line bg-paper">
+          <table className="block w-full table-fixed text-sm xl:table">
+            <caption className="sr-only">User accounts and management options</caption>
+            <colgroup className="hidden xl:table-column-group">
+              <col className="w-[34%]" />
+              <col className="w-[26%]" />
+              <col className="w-[21%]" />
+              <col className="w-[19%]" />
+            </colgroup>
+            <thead className="hidden bg-cream/70 text-left text-xs font-semibold uppercase tracking-wider text-ink-muted xl:table-header-group">
               <tr>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">ID number</th>
-                <th className="px-4 py-3">Role</th>
-                <th className="px-4 py-3">College / office</th>
-                <th className="px-4 py-3">Account</th>
-                <th className="px-4 py-3">Joined</th>
-                <th className="px-4 py-3">Manage</th>
+                <th scope="col" className="rounded-tl-2xl px-4 py-3">User</th>
+                <th scope="col" className="px-4 py-3">College / office</th>
+                <th scope="col" className="px-4 py-3">Role &amp; account</th>
+                <th scope="col" className="rounded-tr-2xl px-4 py-3">Manage</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-line max-md:block">
+            <tbody className="block divide-y divide-line xl:table-row-group">
               {users.map(({ user: u, college }) => {
                 const look = ROLE_LOOK[u.role];
                 const RoleIcon = look.icon;
                 return (
-                  <tr key={u.id} className="relative transition-colors hover:bg-sand/50 max-md:flex max-md:flex-wrap max-md:items-center max-md:gap-x-3 max-md:gap-y-2 max-md:p-4">
-                    <td className="px-4 py-3 max-md:w-full max-md:p-0">
-                      <div className="flex items-center gap-3">
-                        <Avatar name={u.name} />
-                        <div className="min-w-0">
-                          <Link href={`/admin/users/${u.id}`} className="font-semibold text-ink after:absolute after:inset-0 hover:text-crimson">
+                  <tr key={u.id} className="grid min-w-0 gap-4 p-4 transition-colors hover:bg-sand/50 sm:grid-cols-[minmax(0,1fr)_auto] xl:table-row xl:p-0">
+                    <td className="block min-w-0 align-top sm:col-span-2 xl:table-cell xl:px-4 xl:py-4">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <Avatar name={u.name} className="shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <Link href={`/admin/users/${u.id}`} className="break-words font-semibold text-ink hover:text-crimson hover:underline">
                             {u.name}
                           </Link>
-                          <div className="truncate text-xs text-ink-muted">{u.email}</div>
+                          <p className="mt-0.5 break-all text-xs text-ink-muted">{u.email}</p>
+                          <p className="mt-2 break-all font-mono text-xs text-ink-soft"><span className="font-sans text-ink-muted">ID: </span>{u.idNumber}</p>
+                          <p className="mt-1 text-xs text-ink-muted">Joined {formatDate(u.createdAt)}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 font-mono text-[13px] text-ink-soft max-md:p-0">{u.idNumber}</td>
-                    <td className="px-4 py-3 max-md:p-0">
-                      <span className="inline-flex items-center gap-1.5 font-medium text-ink-soft">
-                        <RoleIcon aria-hidden strokeWidth={ICON_STROKE} className={cn("size-4", u.role === "admin" ? "text-amber-deep" : "text-crimson")} />
-                        {look.one}
-                      </span>
+                    <td className="block min-w-0 align-top text-ink-soft xl:table-cell xl:px-4 xl:py-4">
+                      <p className="mb-1 text-xs font-medium text-ink-muted xl:hidden">College / office</p>
+                      <p className="break-words">{college ?? "—"}</p>
                     </td>
-                    <td className="max-w-56 truncate px-4 py-3 text-ink-soft max-md:hidden">{college ?? "—"}</td>
-                    <td className="px-4 py-3 max-md:p-0">
+                    <td className="block min-w-0 align-top xl:table-cell xl:px-4 xl:py-4">
+                      <span className="mb-2 flex items-start gap-1.5 font-medium text-ink-soft">
+                        <RoleIcon aria-hidden strokeWidth={ICON_STROKE} className={cn("mt-0.5 size-4 shrink-0", u.role === "admin" ? "text-amber-deep" : "text-crimson")} />
+                        <span className="min-w-0 break-words">{look.one}</span>
+                      </span>
                       {u.status === "DEACTIVATED" ? (
                         <Badge tone="red" icon={UserX}>Deactivated</Badge>
                       ) : u.emailVerified ? (
@@ -133,11 +139,10 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
                         <Badge tone="amber" icon={MailWarning}>Unverified email</Badge>
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-ink-muted max-md:hidden">{formatDate(u.createdAt)}</td>
-                    <td className="relative z-10 px-4 py-3 max-md:w-full max-md:p-0">
-                      <div className="flex flex-wrap gap-3 text-xs font-semibold text-crimson">
-                        <Link href={`/admin/users/${u.id}#profile`} className="hover:underline">Edit</Link>
-                        <Link href={`/admin/users/${u.id}#access`} className="hover:underline">Access &amp; status</Link>
+                    <td className="block min-w-0 border-t border-line pt-3 align-top sm:col-span-2 xl:table-cell xl:border-t-0 xl:px-4 xl:py-4">
+                      <div className="flex flex-wrap gap-2 text-xs font-semibold text-crimson xl:flex-col xl:items-start">
+                        <Link href={`/admin/users/${u.id}#profile`} className="inline-flex min-h-9 items-center rounded-lg border border-line-strong px-3 py-2 hover:bg-sand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-crimson">Edit profile</Link>
+                        <Link href={`/admin/users/${u.id}#access`} className="inline-flex min-h-9 items-center rounded-lg border border-line-strong px-3 py-2 hover:bg-sand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-crimson">Manage access</Link>
                       </div>
                     </td>
                   </tr>

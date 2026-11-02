@@ -108,11 +108,19 @@ function NavGroups({ section, counts, onNavigate }: { section: NavSection; count
       setIndicator(null);
       return;
     }
-    setIndicator((prev) => ({ top: el.offsetTop, height: el.offsetHeight, ready: prev !== null }));
+    const update = () => setIndicator((prev) =>
+      prev?.top === el.offsetTop && prev.height === el.offsetHeight
+        ? prev
+        : { top: el.offsetTop, height: el.offsetHeight, ready: prev !== null });
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(container.current);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [activeHref]);
 
   return (
-    <div ref={container} className="relative space-y-6">
+    <div ref={container} className="relative space-y-6 [@media(max-height:850px)]:space-y-4">
       {indicator && (
         <span
           aria-hidden
@@ -144,7 +152,7 @@ function NavGroups({ section, counts, onNavigate }: { section: NavSection; count
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "group relative flex h-11 items-center gap-3 rounded-2xl px-3 text-[15px] font-medium transition-colors duration-200",
+                      "group relative flex h-11 items-center gap-3 rounded-2xl px-3 text-[15px] font-medium transition-colors duration-200 [@media(max-height:850px)]:h-10",
                       active ? "text-cream" : "text-cream/75 hover:bg-white/[0.05] hover:text-cream",
                     )}
                   >
@@ -189,10 +197,10 @@ function SidebarBody({
 }) {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-[28px] bg-oxblood text-cream">
-      <div className="px-6 pb-1 pt-6">
+      <div className="shrink-0 px-6 pb-1 pt-6 [@media(max-height:850px)]:pt-4">
         <Logo tone="light" href={section === "admin" ? "/admin" : "/dashboard"} />
       </div>
-      <div className="px-4 pt-5">
+      <div className="shrink-0 px-4 pt-5 [@media(max-height:850px)]:pt-3">
         {section === "admin" ? (
           <div className="flex h-12 items-center gap-2.5 rounded-2xl bg-linear-to-r from-crimson to-rust px-4 text-[15px] font-bold text-cream">
             <ShieldCheck aria-hidden strokeWidth={ICON_STROKE} className="size-5" />
@@ -209,10 +217,10 @@ function SidebarBody({
           </Link>
         )}
       </div>
-      <nav aria-label="Main" className="mt-6 flex-1 overflow-y-auto px-3 pb-4">
+      <nav aria-label="Main" className="mt-6 min-h-0 flex-1 overflow-y-auto px-3 pb-4 [@media(max-height:850px)]:mt-4 [@media(max-height:850px)]:pb-2">
         <NavGroups section={section} counts={counts} onNavigate={onNavigate} />
       </nav>
-      <div className="px-3 pb-4">{footer}</div>
+      <div className="shrink-0 px-3 pb-4">{footer}</div>
     </div>
   );
 }

@@ -49,7 +49,7 @@ export async function AppShell({
       : null;
   const fullName = user.name || `${user.firstName} ${user.lastName ?? ""}`.trim();
 
-  const row = "flex h-11 w-full items-center gap-3 rounded-2xl px-3 text-[15px] font-medium transition-colors";
+  const row = "flex h-11 w-full items-center gap-3 rounded-2xl px-3 text-[15px] font-medium transition-colors [@media(max-height:850px)]:h-10";
   const accountCard = (
     <div className="space-y-1 border-t border-white/10 pt-3">
       {switchLink && (
@@ -58,7 +58,7 @@ export async function AppShell({
           {switchLink.label}
         </Link>
       )}
-      <Link href="/profile" className={cn(row, "h-14 text-cream hover:bg-white/[0.05]")}>
+      <Link href="/profile" className={cn(row, "h-14 text-cream hover:bg-white/[0.05] [@media(max-height:850px)]:h-12")}>
         <Avatar name={fullName} className="size-8 bg-cream text-[11px] text-oxblood ring-0" />
         <span className="min-w-0 text-left">
           <span className="block truncate text-sm font-semibold">{fullName}</span>
@@ -76,7 +76,7 @@ export async function AppShell({
   return (
     <>
       <Sidebar section={section} counts={counts} footer={accountCard} />
-      <div className="flex min-h-full flex-1 flex-col lg:pl-[280px]">
+      <div className="flex min-h-full min-w-0 flex-1 flex-col lg:pl-[280px]">
         <header className="sticky top-0 z-20 border-b border-line bg-cream">
           <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
             <div className="flex items-center gap-2 lg:hidden">
@@ -122,7 +122,7 @@ export async function AppShell({
             </div>
           </div>
         </header>
-        <main className={cn("mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-10")}>{children}</main>
+        <main className={cn("mx-auto w-full min-w-0 max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-10")}>{children}</main>
       </div>
     </>
   );
