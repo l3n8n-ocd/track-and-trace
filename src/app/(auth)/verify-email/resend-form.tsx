@@ -15,6 +15,7 @@ export function ResendForm({ email }: { email: string }) {
       <Field label="Didn't get it? Send a new link to" htmlFor="email">
         <Input id="email" name="email" type="email" icon={Mail} placeholder="name@example.com" defaultValue={email} />
       </Field>
+      <p className="text-xs leading-relaxed text-ink-muted">Allow a minute between requests. Repeated clicks do not send extra emails. If the message appears in Spam, select Not spam to help your mail provider recognize future messages.</p>
       <SubmitButton variant="secondary" className="w-full" pendingText="Sending…">
         <RotateCcw aria-hidden />
         Resend verification email

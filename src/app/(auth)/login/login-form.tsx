@@ -14,6 +14,7 @@ export function LoginForm({ next }: { next?: string }) {
   return (
     <form action={action} className="mt-4 space-y-4" noValidate>
       {state.error && <Alert>{state.error}</Alert>}
+      {state.error?.startsWith("Please verify your email") && <Link href={`/verify-email?email=${encodeURIComponent(state.values?.email ?? "")}`} className="block text-sm font-semibold text-crimson hover:underline">Resend verification email</Link>}
       <input type="hidden" name="next" value={next ?? ""} />
       <Field label="Email" htmlFor="email" error={e.email}>
         <Input

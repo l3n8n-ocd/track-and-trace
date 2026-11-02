@@ -6,6 +6,7 @@ import { bearer } from "better-auth/plugins";
 import { clientOrigins, verificationLink } from "./client-origin";
 import { db, schema } from "@/db";
 import { sendEmail } from "./email";
+import { reserveVerificationEmail } from "@/server/email-delivery";
 import { appUrl, env, trustedOrigins } from "./env";
 
 export const auth = betterAuth({
@@ -97,14 +98,18 @@ export const auth = betterAuth({
     sendOnSignUp: true,
     sendOnSignIn: true,
     autoSignInAfterVerification: true,
+    expiresIn: 60 * 60,
     sendVerificationEmail: async ({ user, url }) => {
+      if (!await reserveVerificationEmail(user.email)) return;
       await sendEmail({
         to: user.email,
-        subject: "Verify your email",
-        title: "Confirm your email address",
+        subject: "Verify your email address",
+        title: "Verify your email address",
         paragraphs: [
           `Hi ${user.name},`,
-          "Thanks for registering with Track-and-Trace. Confirm your email to start reporting and claiming items.",
+          "Confirm this email address for your Track-and-Trace account.",
+          "Use the verification link below within one hour to access the campus lost-and-found system.",
+          "If you did not request an account or an email address change, you can ignore this message.",
         ],
         action: { label: "Verify email", url: verificationLink(url) },
       });
@@ -123,6 +128,7 @@ export const auth = betterAuth({
       "/sign-in/email": { window: 60, max: 5 },
       "/sign-up/email": { window: 60, max: 5 },
       "/request-password-reset": { window: 300, max: 3 },
+      "/send-verification-email": { window: 60, max: 3 },
     },
   },
   advanced: {

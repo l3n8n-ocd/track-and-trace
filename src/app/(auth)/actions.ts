@@ -179,7 +179,7 @@ export async function loginAction(_: FormState, formData: FormData): Promise<For
       if (error.status === "FORBIDDEN" && /verif/i.test(error.message)) {
         return {
           error:
-            "Please verify your email first. We've sent you a new verification link; check your inbox and spam folder.",
+            "Please verify your email first. Open the link we sent you, or request a new verification email. Allow a minute before requesting another link.",
           values: kept,
         };
       }
@@ -255,5 +255,5 @@ export async function resendVerificationAction(_: FormState, formData: FormData)
   } catch {
     // Ignore: don't reveal whether the account exists.
   }
-  return { message: "If the account exists and isn't verified yet, a new link has been sent." };
+  return { message: "If the account exists and isn't verified yet, a link will be sent unless one was sent in the last minute. Check your inbox and allow a minute before trying again." };
 }
