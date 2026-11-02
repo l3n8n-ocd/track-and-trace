@@ -1,7 +1,7 @@
 "use server";
 
 import { hashPassword } from "better-auth/crypto";
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, ne } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
@@ -19,6 +19,7 @@ import { ClaimError, approveClaim, rejectClaim, releaseClaim, requestMoreProof }
 import { runMatchingForReport } from "@/server/matching";
 import { notify } from "@/server/notify";
 import { CATEGORY_OPTIONS_TAG, LOCATION_OPTIONS_TAG, COLLEGE_OPTIONS_TAG } from "@/server/options";
+import { categoryEditSchema, categoryParentError, collegeEditSchema, locationEditSchema } from "@/lib/settings";
 
 // Both Server Actions and the authenticated frontend API need immediate expiry.
 function updateTag(tag: string) { revalidateTag(tag, { expire: 0 }); }
@@ -267,6 +268,26 @@ export async function renameCategoryAction(categoryId: number, formData: FormDat
   back(settingsPath(formData), { msg: "Category renamed." });
 }
 
+export async function updateCategoryAction(categoryId: number, formData: FormData) {
+  const admin = await requireAdmin();
+  const path = settingsPath(formData);
+  if (!Number.isSafeInteger(categoryId) || categoryId <= 0) back(path, { error: "Category not found." });
+  const parsed = categoryEditSchema.safeParse({ name: text(formData, "name"), parentId: text(formData, "parentId") });
+  if (!parsed.success) back(path, { error: parsed.error.issues[0].message });
+  const rows = await db.select().from(schema.category);
+  if (!rows.some((row) => row.id === categoryId)) back(path, { error: "Category not found." });
+  const { name, parentId } = parsed.data;
+  const parentError = categoryParentError(categoryId, parentId, rows);
+  if (parentError) back(path, { error: parentError });
+  if (rows.some((row) => row.id !== categoryId && row.parentId === parentId && row.name.toLowerCase() === name.toLowerCase())) {
+    back(path, { error: "A category with that name already exists in this group." });
+  }
+  await db.update(schema.category).set({ name, parentId }).where(eq(schema.category.id, categoryId));
+  updateTag(CATEGORY_OPTIONS_TAG);
+  await logActivity(admin.id, "Updated category", "category", categoryId, `${name}; parent: ${parentId ?? "top level"}`);
+  back(path, { msg: "Category updated." });
+}
+
 export async function deleteCategoryAction(categoryId: number, formData?: FormData) {
   const admin = await requireAdmin();
   const [[used], [children]] = await Promise.all([
@@ -309,6 +330,26 @@ export async function toggleLocationAction(locationId: number, formData?: FormDa
   back(settingsPath(formData), { msg: loc.isActive ? "Location hidden from forms." : "Location restored." });
 }
 
+export async function updateLocationAction(locationId: number, formData: FormData) {
+  const admin = await requireAdmin();
+  const path = settingsPath(formData);
+  if (!Number.isSafeInteger(locationId) || locationId <= 0) back(path, { error: "Location not found." });
+  const loc = await db.query.location.findFirst({ where: eq(schema.location.id, locationId) });
+  if (!loc) back(path, { error: "Location not found." });
+  const parsed = locationEditSchema.safeParse({
+    buildingName: text(formData, "buildingName"),
+    areaDescription: formData.has("areaDescription") ? text(formData, "areaDescription") : loc.areaDescription ?? "",
+    roomNumber: formData.has("roomNumber") ? text(formData, "roomNumber") : loc.roomNumber ?? "",
+    storageBin: formData.has("storageBin") ? text(formData, "storageBin") : loc.storageBin ?? "",
+  });
+  if (!parsed.success) back(path, { error: parsed.error.issues[0].message });
+  // Keep the location ID, visibility, and place/storage type intact.
+  await db.update(schema.location).set(parsed.data).where(eq(schema.location.id, locationId));
+  updateTag(LOCATION_OPTIONS_TAG);
+  await logActivity(admin.id, loc.isStorage ? "Updated storage location" : "Updated place", "location", locationId, parsed.data.buildingName);
+  back(path, { msg: loc.isStorage ? "Storage location updated." : "Place updated." });
+}
+
 export async function addCollegeAction(formData: FormData) {
   const admin = await requireAdmin();
   const name = text(formData, "name");
@@ -319,6 +360,22 @@ export async function addCollegeAction(formData: FormData) {
   updateTag(COLLEGE_OPTIONS_TAG);
   await logActivity(admin.id, "Added college", "college", res.insertId, name);
   back(settingsPath(formData), { msg: "College added." });
+}
+
+export async function updateCollegeAction(collegeId: number, formData: FormData) {
+  const admin = await requireAdmin();
+  const path = settingsPath(formData);
+  if (!Number.isSafeInteger(collegeId) || collegeId <= 0) back(path, { error: "College or office not found." });
+  const parsed = collegeEditSchema.safeParse({ name: text(formData, "name") });
+  if (!parsed.success) back(path, { error: parsed.error.issues[0].message });
+  const college = await db.query.college.findFirst({ where: eq(schema.college.id, collegeId) });
+  if (!college) back(path, { error: "College or office not found." });
+  const duplicate = await db.query.college.findFirst({ where: and(eq(schema.college.name, parsed.data.name), ne(schema.college.id, collegeId)) });
+  if (duplicate) back(path, { error: "That college or office already exists." });
+  await db.update(schema.college).set(parsed.data).where(eq(schema.college.id, collegeId));
+  updateTag(COLLEGE_OPTIONS_TAG);
+  await logActivity(admin.id, "Updated college or office", "college", collegeId, parsed.data.name);
+  back(path, { msg: "College or office updated." });
 }
 
 // ---------------------------------------------------------------------------

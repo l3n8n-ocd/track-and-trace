@@ -31,10 +31,13 @@ export const clientActions={
 "admin/actions:createAdminAction": async (args: unknown[]) => {const mod=await import("@/app/admin/actions"); return (mod.createAdminAction as (...args: never[])=>Promise<unknown>)(...args as never[]);},
 "admin/actions:addCategoryAction": async (args: unknown[]) => {const mod=await import("@/app/admin/actions"); return (mod.addCategoryAction as (...args: never[])=>Promise<unknown>)(...args as never[]);},
 "admin/actions:renameCategoryAction": async (args: unknown[]) => {const mod=await import("@/app/admin/actions"); return (mod.renameCategoryAction as (...args: never[])=>Promise<unknown>)(...args as never[]);},
+"admin/actions:updateCategoryAction": async (args: unknown[]) => {const mod=await import("@/app/admin/actions"); return (mod.updateCategoryAction as (...args: never[])=>Promise<unknown>)(...args as never[]);},
 "admin/actions:deleteCategoryAction": async (args: unknown[]) => {const mod=await import("@/app/admin/actions"); return (mod.deleteCategoryAction as (...args: never[])=>Promise<unknown>)(...args as never[]);},
 "admin/actions:addLocationAction": async (args: unknown[]) => {const mod=await import("@/app/admin/actions"); return (mod.addLocationAction as (...args: never[])=>Promise<unknown>)(...args as never[]);},
 "admin/actions:toggleLocationAction": async (args: unknown[]) => {const mod=await import("@/app/admin/actions"); return (mod.toggleLocationAction as (...args: never[])=>Promise<unknown>)(...args as never[]);},
+"admin/actions:updateLocationAction": async (args: unknown[]) => {const mod=await import("@/app/admin/actions"); return (mod.updateLocationAction as (...args: never[])=>Promise<unknown>)(...args as never[]);},
 "admin/actions:addCollegeAction": async (args: unknown[]) => {const mod=await import("@/app/admin/actions"); return (mod.addCollegeAction as (...args: never[])=>Promise<unknown>)(...args as never[]);},
+"admin/actions:updateCollegeAction": async (args: unknown[]) => {const mod=await import("@/app/admin/actions"); return (mod.updateCollegeAction as (...args: never[])=>Promise<unknown>)(...args as never[]);},
 "admin/actions:createAnnouncementAction": async (args: unknown[]) => {const mod=await import("@/app/admin/actions"); return (mod.createAnnouncementAction as (...args: never[])=>Promise<unknown>)(...args as never[]);},
 "admin/actions:toggleAnnouncementAction": async (args: unknown[]) => {const mod=await import("@/app/admin/actions"); return (mod.toggleAnnouncementAction as (...args: never[])=>Promise<unknown>)(...args as never[]);},
 "admin/actions:deleteAnnouncementAction": async (args: unknown[]) => {const mod=await import("@/app/admin/actions"); return (mod.deleteAnnouncementAction as (...args: never[])=>Promise<unknown>)(...args as never[]);}

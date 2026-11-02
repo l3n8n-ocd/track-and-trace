@@ -32,10 +32,10 @@ test("admin edits immediately refresh cached registration and report choices", a
     await expect(reportPage.locator("#categoryId option").filter({ hasText: category })).toHaveCount(1);
 
     await page.getByText(category, { exact: true }).click();
-    await page.getByText(`${category} (general)`, { exact: true }).click();
-    await page.getByRole("textbox", { name: `Rename ${category}`, exact: true }).fill(renamed);
-    await page.getByRole("button", { name: "Save", exact: true }).click();
-    await expect(page.getByText("Category renamed.", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: `Edit category ${category}`, exact: true }).click();
+    await page.getByRole("textbox", { name: "Category name", exact: true }).fill(renamed);
+    await page.getByRole("button", { name: "Save changes", exact: true }).click();
+    await expect(page.getByText("Category updated.", { exact: true })).toBeVisible();
     await reportPage.reload();
     await expect(reportPage.locator("#categoryId option").filter({ hasText: renamed })).toHaveCount(1);
     await page.getByText(renamed, { exact: true }).click();

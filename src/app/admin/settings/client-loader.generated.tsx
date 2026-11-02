@@ -10,7 +10,6 @@ import {
   EyeOff,
   Layers,
   MapPin,
-  Pencil,
   Plus,
   School,
   Settings,
@@ -20,8 +19,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Flash } from "@/components/flash";
+import { EditSettingDialog } from "@/components/edit-setting-dialog";
 import { SubmitButton } from "@/components/submit-button";
-import { Badge, Card, CardHeader, ICON_STROKE, Input, PageHeader, Select, cn } from "@/components/ui";
+import { Badge, Card, CardHeader, Field, ICON_STROKE, Input, PageHeader, Select, cn } from "@/components/ui";
 import { schema } from "@/db";
 import { requireAdmin } from "@/lib/session";
 import { categories as categoryRows, locations as locationRows, collegeOptions, locationLabel } from "@/server/options";
@@ -30,7 +30,9 @@ import {
   addCollegeAction,
   addLocationAction,
   deleteCategoryAction,
-  renameCategoryAction,
+  updateCategoryAction,
+  updateCollegeAction,
+  updateLocationAction,
   toggleLocationAction,
 } from "../actions";
 
@@ -68,7 +70,10 @@ const tabInput = <input type="hidden" name="tab" value={tab} />;
 return {categories,locations,colleges};
 }
 
-function CategoryRow({ id, name, tab, parent = false }: { id: number; name: string; tab: string; parent?: boolean }) {
+function CategoryRow({ id, name, parentId, parents, tab, parent = false, hasChildren = false }: {
+  id: number; name: string; parentId: number | null;
+  parents: { id: number; name: string }[]; tab: string; parent?: boolean; hasChildren?: boolean;
+}) {
   return (
     <div className="group/row flex items-center gap-2 rounded-xl py-1.5 pl-1">
       {parent ? (
@@ -76,22 +81,19 @@ function CategoryRow({ id, name, tab, parent = false }: { id: number; name: stri
       ) : (
         <CornerDownRight aria-hidden strokeWidth={ICON_STROKE} className="size-4 shrink-0 text-ink-faint" />
       )}
-      <details className="group/edit min-w-0 flex-1">
-        <summary className="flex cursor-pointer list-none items-center gap-2 text-sm">
-          <span className={cn("truncate", parent ? "text-ink-muted" : "text-ink")}>{parent ? `${name} (general)` : name}</span>
-          <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs font-semibold text-crimson opacity-60 hover:bg-sand group-hover/row:opacity-100 group-open/edit:hidden">
-            <Pencil aria-hidden strokeWidth={ICON_STROKE} className="size-3.5" />
-            Rename
-          </span>
-        </summary>
-        <form action={renameCategoryAction.bind(null, id)} className="mt-2 flex max-w-md items-center gap-2">
-          <input type="hidden" name="tab" value={tab} />
-          <Input name="name" defaultValue={name} aria-label={`Rename ${name}`} className="h-9" />
-          <SubmitButton size="sm" pendingText="…">
-            Save
-          </SubmitButton>
-        </form>
-      </details>
+      <span className={cn("min-w-0 flex-1 break-words text-sm", parent ? "text-ink-muted" : "text-ink")}>{parent ? `${name} (general)` : name}</span>
+      <EditSettingDialog title="Edit category" label={`Edit category ${name}`} action={updateCategoryAction.bind(null, id)}>
+        <input type="hidden" name="tab" value={tab} />
+        <Field label="Category name" htmlFor={`category-name-${id}`} required>
+          <Input id={`category-name-${id}`} name="name" defaultValue={name} minLength={2} maxLength={100} required />
+        </Field>
+        <Field label="Parent category" htmlFor={`category-parent-${id}`} hint={hasChildren ? "Categories with subcategories stay at the top level. Move their subcategories first to change this." : undefined}>
+          <Select id={`category-parent-${id}`} name="parentId" defaultValue={parentId ?? ""} disabled={hasChildren}>
+            <option value="">Top level</option>
+            {parents.filter((p) => p.id !== id).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </Select>
+        </Field>
+      </EditSettingDialog>
       <form action={deleteCategoryAction.bind(null, id)}>
         <input type="hidden" name="tab" value={tab} />
         <SubmitButton variant="ghost" size="sm" pendingText="…" aria-label={`Delete ${name}`} title="Delete" className="size-9 px-0 text-ink-muted hover:text-berry">
@@ -107,17 +109,32 @@ function LocationList({ rows, tab }: { rows: Location[]; tab: string }) {
   return (
     <ul className="divide-y divide-line rounded-xl border border-line">
       {sorted.map((l) => (
-        <li key={l.id} className={cn("flex items-center justify-between gap-3 px-3 py-2", !l.isActive && "bg-sand/40")}>
-          <span className={cn("flex min-w-0 items-center gap-2.5 text-sm", l.isActive ? "text-ink" : "text-ink-muted line-through")}>
+        <li key={l.id} className={cn("flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2", !l.isActive && "bg-sand/40")}>
+          <span className={cn("flex min-w-0 flex-1 items-center gap-2.5 text-sm", l.isActive ? "text-ink" : "text-ink-muted line-through")}>
             {l.isActive ? (
               <Eye aria-hidden strokeWidth={ICON_STROKE} className="size-4 shrink-0 text-crimson" />
             ) : (
               <EyeOff aria-hidden strokeWidth={ICON_STROKE} className="size-4 shrink-0 text-ink-faint" />
             )}
-            <span className="truncate">{locationLabel(l)}</span>
+            <span className="break-words">{locationLabel(l)}</span>
           </span>
           <span className="flex shrink-0 items-center gap-2">
             {!l.isActive && <Badge>Hidden</Badge>}
+            <EditSettingDialog title={l.isStorage ? "Edit storage location" : "Edit campus place"} label={`Edit ${l.isStorage ? "storage location" : "campus place"} ${locationLabel(l)}`} action={updateLocationAction.bind(null, l.id)}>
+              <input type="hidden" name="tab" value={tab} />
+              <Field label={l.isStorage ? "Office or building" : "Building or place"} htmlFor={`location-building-${l.id}`} required>
+                <Input id={`location-building-${l.id}`} name="buildingName" defaultValue={l.buildingName} minLength={2} maxLength={150} required />
+              </Field>
+              <Field label="Area description" htmlFor={`location-area-${l.id}`}>
+                <Input id={`location-area-${l.id}`} name="areaDescription" defaultValue={l.areaDescription ?? ""} maxLength={255} />
+              </Field>
+              <Field label="Room" htmlFor={`location-room-${l.id}`}>
+                <Input id={`location-room-${l.id}`} name="roomNumber" defaultValue={l.roomNumber ?? ""} maxLength={50} />
+              </Field>
+              {l.isStorage && <Field label="Shelf or bin" htmlFor={`location-bin-${l.id}`}>
+                <Input id={`location-bin-${l.id}`} name="storageBin" defaultValue={l.storageBin ?? ""} maxLength={50} />
+              </Field>}
+            </EditSettingDialog>
             <form action={toggleLocationAction.bind(null, l.id)}>
               <input type="hidden" name="tab" value={tab} />
               <SubmitButton variant={l.isActive ? "ghost" : "secondary"} size="sm" pendingText="…">

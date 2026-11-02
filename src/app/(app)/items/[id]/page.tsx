@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PhotoViewer } from "@/components/photo-viewer";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, EyeOff, Hand, ImageOff, MapPin, ShieldCheck, Tag, X } from "lucide-react";
@@ -70,12 +71,13 @@ export default async function ItemPage({ params, searchParams }: PageProps<"/ite
           {item.images.length > 0 ? (
             <div className="grid grid-cols-2 gap-3">
               {item.images.map((p, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <PhotoViewer
                   key={p}
                   src={photoUrl(p, { blurred: !item.isOwnReport, width: 700 })}
-                  alt=""
-                  className={`w-full rounded-2xl object-cover ring-1 ring-line ${i === 0 ? "col-span-2 aspect-[4/3]" : "aspect-square"}`}
+                  thumbnailSrc={photoUrl(p, { blurred: !item.isOwnReport, width: 700 })}
+                  alt={`${item.itemName} · photo ${i + 1}`}
+                  className={i === 0 ? "col-span-2 rounded-2xl" : "rounded-2xl"}
+                  imageClassName={i === 0 ? "aspect-[4/3]" : "aspect-square"}
                 />
               ))}
             </div>

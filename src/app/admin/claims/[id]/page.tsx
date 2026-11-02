@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PhotoViewer } from "@/components/photo-viewer";
 import Link from "next/link";
 import { and, desc, eq, ne } from "drizzle-orm";
 import {
@@ -194,11 +195,8 @@ export default async function AdminClaimPage({ params, searchParams }: PageProps
           </div>
           {(images.get(f.id) ?? []).length > 0 && (
             <div className="mt-4 grid grid-cols-3 gap-2">
-              {(images.get(f.id) ?? []).map((img) => (
-                <a key={img.id} href={photoUrl(img.imagePath, { width: 1600 })} target="_blank" rel="noreferrer" className="overflow-hidden rounded-xl ring-1 ring-line">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={photoUrl(img.imagePath, { width: 300 })} alt="" className="aspect-square w-full object-cover" />
-                </a>
+              {(images.get(f.id) ?? []).map((img, i) => (
+                <PhotoViewer key={img.id} src={photoUrl(img.imagePath, { width: 1600 })} thumbnailSrc={photoUrl(img.imagePath, { width: 300 })} alt={`${f.itemName} · photo ${i + 1}`} />
               ))}
             </div>
           )}

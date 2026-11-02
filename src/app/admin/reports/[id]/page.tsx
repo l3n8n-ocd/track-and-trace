@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PhotoViewer } from "@/components/photo-viewer";
 import Link from "next/link";
 import { and, desc, eq, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
@@ -123,21 +124,13 @@ export default async function AdminReportPage({ params, searchParams }: PageProp
             />
             {images.length > 0 && (
               <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {images.map((img) => (
-                  <a
+                {images.map((img, i) => (
+                  <PhotoViewer
                     key={img.id}
-                    href={photoUrl(img.imagePath, { width: 1600 })}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="group overflow-hidden rounded-xl ring-1 ring-line"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={photoUrl(img.imagePath, { width: 400 })}
-                      alt=""
-                      className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                  </a>
+                    src={photoUrl(img.imagePath, { width: 1600 })}
+                    thumbnailSrc={photoUrl(img.imagePath, { width: 400 })}
+                    alt={`${r.itemName} · photo ${i + 1}`}
+                  />
                 ))}
               </div>
             )}
