@@ -106,7 +106,7 @@ export default async function AdminHome() {
     <div className="space-y-6">
       <Banner
         eyebrow={`Lost and Found Office · ${new Date().toLocaleDateString("en-PH", { timeZone: "Asia/Manila", weekday: "long", month: "long", day: "numeric" })}`}
-        title={`${hello}, ${admin.firstName}.`}
+        title={`${hello}, ${admin.name}.`}
         actions={
           <>
             <LinkButton href="/admin/reports?status=PENDING" variant="light" size="lg">

@@ -23,9 +23,9 @@ import { cn } from "./ui";
 // tags stay distinguishable without relying on hue alone:
 //   waiting  – soft rust          (someone is reviewing)
 //   action   – soft amber, strong ring (the owner needs to do something)
-//   ready    – solid amber        (go to the office)
-//   verified – soft crimson       (checked by the office)
-//   done     – solid oxblood      (resolved, item returned)
+//   ready    – soft green, strong ring (go to the office)
+//   verified – soft green         (checked by the office)
+//   done     – solid green        (resolved, item returned)
 //   stopped  – dashed berry       (rejected, expired, lapsed)
 //   inactive – neutral            (archived, on hold, dismissed)
 export type TagStyle = "waiting" | "action" | "ready" | "verified" | "confirmed" | "done" | "stopped" | "inactive";
@@ -33,10 +33,10 @@ export type TagStyle = "waiting" | "action" | "ready" | "verified" | "confirmed"
 const STYLE: Record<TagStyle, string> = {
   waiting: "bg-rust-tint text-[#8f3209] ring-1 ring-inset ring-rust/25",
   action: "bg-amber-tint text-amber-deep ring-[1.5px] ring-inset ring-amber",
-  ready: "bg-amber text-ink",
-  verified: "bg-crimson-tint text-crimson ring-1 ring-inset ring-crimson/25",
-  confirmed: "bg-crimson text-cream",
-  done: "bg-oxblood text-cream",
+  ready: "bg-success-tint text-success ring-2 ring-inset ring-success/50",
+  verified: "bg-success-tint text-success ring-1 ring-inset ring-success/30",
+  confirmed: "bg-success text-white",
+  done: "bg-success text-white",
   stopped: "bg-berry-tint/60 text-berry border border-dashed border-berry/60",
   inactive: "bg-sand text-ink-soft ring-1 ring-inset ring-line-strong",
 };
@@ -145,7 +145,7 @@ export function StageMeter({
           key={i}
           className={cn(
             "h-1.5 w-4 rounded-full",
-            i < done ? (stopped ? "bg-berry/50" : "bg-oxblood") : i === done && !stopped ? "bg-amber" : "bg-line-strong/70",
+            i < done ? (stopped ? "bg-berry/50" : "bg-success") : i === done && !stopped ? "bg-amber" : "bg-line-strong/70",
           )}
         />
       ))}
@@ -160,7 +160,7 @@ export function MatchScore({ score }: { score: number }) {
     <span className="inline-flex items-center gap-2 text-xs font-semibold text-ink-soft" title={`Match score ${s} out of 100`}>
       <span className="h-1.5 w-14 overflow-hidden rounded-full bg-sand">
         <span
-          className={cn("block h-full rounded-full", s >= 80 ? "bg-crimson" : s >= 65 ? "bg-rust" : "bg-amber")}
+          className={cn("block h-full rounded-full", s >= 80 ? "bg-success" : s >= 65 ? "bg-rust" : "bg-amber")}
           style={{ width: `${Math.min(100, s)}%` }}
         />
       </span>

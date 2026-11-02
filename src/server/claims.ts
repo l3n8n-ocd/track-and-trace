@@ -41,6 +41,15 @@ export async function approveClaim(adminId: string, claimId: number, pickupDeadl
     .set({ claimStatus: "APPROVED", reviewedBy: adminId, dateReviewed: new Date(), pickupDeadline, remarks, reminderSent: false })
     .where(eq(schema.claim.id, claimId));
 
+  const ownedLost = db.select({ id: schema.report.id }).from(schema.report).where(eq(schema.report.userId, claim.claimantId));
+  const related = await db.select({ id: schema.matchRecord.id, lostReportId: schema.matchRecord.lostReportId })
+    .from(schema.matchRecord).where(and(eq(schema.matchRecord.foundReportId, report.id), inArray(schema.matchRecord.lostReportId, ownedLost)));
+  // Keep historical alerts, but stop presenting a handled suggestion as unread.
+  if (related.length) await db.update(schema.notification).set({ isRead: true }).where(and(
+    eq(schema.notification.userId, claim.claimantId), eq(schema.notification.notificationType, "MATCH_FOUND"),
+    inArray(schema.notification.reportId, related.map(m => m.lostReportId)),
+  ));
+
   // Other open claims on the same item wait (FR-C5).
   const waiting = await db
     .select({ id: schema.claim.id, claimantId: schema.claim.claimantId })

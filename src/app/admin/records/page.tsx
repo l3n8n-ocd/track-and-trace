@@ -3,6 +3,7 @@ import Link from "next/link";
 import { and, desc, eq, gte, lt, lte, or, type SQL } from "drizzle-orm";
 import { Activity, Download, FileText, FolderArchive, Inbox, ListFilter, Search, TimerOff } from "lucide-react";
 import { Flash } from "@/components/flash";
+import { LiveSearchForm } from "@/components/live-search-form";
 import { ReportStatusBadge } from "@/components/status-badge";
 import { Button, Card, CardHeader, Field, ICON_STROKE, Input, PageHeader } from "@/components/ui";
 import { db, schema } from "@/db";
@@ -67,7 +68,7 @@ export default async function RecordsPage({ searchParams }: PageProps<"/admin/re
 
       <section aria-labelledby="export-heading">
         <h2 id="export-heading" className="mb-1 text-sm font-semibold uppercase tracking-wider text-ink-muted">
-          Export records (CSV)
+          Export records (CSV or PDF)
         </h2>
         <p className="mb-3 text-sm text-ink-muted">
           {from || to
@@ -82,20 +83,28 @@ export default async function RecordsPage({ searchParams }: PageProps<"/admin/re
               ["activity", "Activity log", "Who did what, and when", Activity],
             ] as const
           ).map(([type, label, hint, Icon]) => (
-            <a
+            <div
               key={type}
-              href={`/api/admin/export?type=${type}${exportQs ? `&${exportQs}` : ""}`}
-              className="group flex items-center gap-3 rounded-2xl border border-line bg-paper p-4 transition-colors hover:border-line-strong hover:bg-white"
+              className="rounded-2xl border border-line bg-paper p-4"
             >
+              <div className="flex items-center gap-3">
               <span className="flex size-10 items-center justify-center rounded-xl bg-sand text-crimson">
                 <Icon aria-hidden strokeWidth={ICON_STROKE} className="size-5" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block font-semibold text-ink">Download {label}</span>
+                <span className="block font-semibold text-ink">{label}</span>
                 <span className="block text-xs text-ink-muted">{hint}</span>
               </span>
-              <Download aria-hidden strokeWidth={ICON_STROKE} className="size-5 text-ink-faint group-hover:text-crimson" />
-            </a>
+              </div>
+              <div className="mt-3 flex gap-2">
+                {(["csv", "pdf"] as const).map(format => <a key={format}
+                  aria-label={`Download ${label} as ${format.toUpperCase()}`}
+                  href={`/api/admin/export?type=${type}&format=${format}${exportQs ? `&${exportQs}` : ""}`}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-line px-3 py-2 text-sm font-semibold text-crimson hover:bg-sand">
+                  <Download aria-hidden className="size-4" />{format.toUpperCase()}
+                </a>)}
+              </div>
+            </div>
           ))}
         </div>
       </section>
@@ -126,7 +135,7 @@ export default async function RecordsPage({ searchParams }: PageProps<"/admin/re
 
       <Card>
         <CardHeader icon={Activity} title="Activity log" description={`${logs.length} entries${logs.length === 200 ? " (latest 200)" : ""}`} />
-        <form className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_180px_auto] lg:items-end">
+        <LiveSearchForm className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_180px_auto] lg:items-end">
           <Field label="Search" htmlFor="q" className="sm:col-span-2 lg:col-span-1">
             <Input id="q" name="q" icon={Search} defaultValue={q} placeholder="Action, person, or record type" />
           </Field>
@@ -140,7 +149,7 @@ export default async function RecordsPage({ searchParams }: PageProps<"/admin/re
             <ListFilter aria-hidden />
             Filter
           </Button>
-        </form>
+        </LiveSearchForm>
         {logs.length === 0 ? (
           <p className="rounded-xl bg-cream/70 px-4 py-3.5 text-sm text-ink-muted">No activity matches these filters.</p>
         ) : (

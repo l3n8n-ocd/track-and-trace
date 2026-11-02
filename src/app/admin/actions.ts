@@ -6,9 +6,13 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { randomUUID } from "node:crypto";
+import { headers } from "next/headers";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { requireAdmin } from "@/lib/session";
+import { auth } from "@/lib/auth";
+import { clientOrigin } from "@/lib/client-origin";
+import { changeUserRole, changeUserStatus, editUserProfile, revokeUserSessions, userManagementMessage } from "@/server/users";
 import { canChangeReport } from "@/lib/status";
 import { logActivity } from "@/server/activity";
 import { ClaimError, approveClaim, rejectClaim, releaseClaim, requestMoreProof } from "@/server/claims";
@@ -154,12 +158,46 @@ export async function releaseClaimAction(claimId: number) {
 export async function setUserStatusAction(userId: string, formData: FormData) {
   const admin = await requireAdmin();
   const path = `/admin/users/${userId}`;
-  const status = formData.get("status") === "ACTIVE" ? "ACTIVE" : "DEACTIVATED";
-  if (userId === admin.id) back(path, { error: "You can't change your own account status." });
-  await db.update(schema.user).set({ status }).where(eq(schema.user.id, userId));
-  if (status === "DEACTIVATED") await db.delete(schema.session).where(eq(schema.session.userId, userId));
-  await logActivity(admin.id, status === "ACTIVE" ? "Reactivated user" : "Deactivated user", "user", userId);
+  let status;
+  try { status = await changeUserStatus(admin.id, userId, formData.get("status")); }
+  catch (error) { const message = userManagementMessage(error); if (message) back(path, { error: message }); throw error; }
+  revalidatePath("/admin/users");
   back(path, { msg: status === "ACTIVE" ? "Account reactivated." : "Account deactivated and signed out." });
+}
+
+export async function updateUserProfileAction(userId: string, formData: FormData) {
+  const admin = await requireAdmin();
+  const path = `/admin/users/${userId}`;
+  let result;
+  try { result = await editUserProfile(admin.id, userId, formData); }
+  catch (error) { const message = userManagementMessage(error); if (message) back(path, { error: message }); throw error; }
+  let msg = "User information saved.";
+  if (result.emailChanged) {
+    const origin = clientOrigin((await headers()).get("origin"));
+    try {
+      await auth.api.sendVerificationEmail({ body: { email: result.email, callbackURL: origin ? `${origin}/dashboard` : "/dashboard" } });
+      msg += " Signed out and verification sent to the new email.";
+    } catch { msg += " Signed out. The new email needs verification; use Resend verification on the login screen."; }
+  }
+  revalidatePath("/", "layout");
+  back(path, { msg });
+}
+
+export async function updateUserAccessAction(userId: string, formData: FormData) {
+  const admin = await requireAdmin();
+  const path = `/admin/users/${userId}`;
+  try { await changeUserRole(admin.id, userId, formData); }
+  catch (error) { const message = userManagementMessage(error); if (message) back(path, { error: message }); throw error; }
+  revalidatePath("/", "layout");
+  back(path, { msg: "Access updated. The user must sign in again. Their active/deactivated status was kept." });
+}
+
+export async function revokeUserSessionsAction(userId: string) {
+  const admin = await requireAdmin();
+  const path = `/admin/users/${userId}`;
+  try { await revokeUserSessions(admin.id, userId); }
+  catch (error) { const message = userManagementMessage(error); if (message) back(path, { error: message }); throw error; }
+  back(path, { msg: "The user was signed out of all devices. They may sign in again if their account is active." });
 }
 
 const newAdminSchema = z.object({

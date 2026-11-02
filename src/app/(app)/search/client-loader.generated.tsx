@@ -9,7 +9,8 @@ import { Button, EmptyState, Field, ICON_STROKE, Input, LinkButton, PageHeader, 
 import { db, schema } from "@/db";
 import { formatDate } from "@/lib/format";
 import { requireUser } from "@/lib/session";
-import { categoryOptions, categoryWithChildren, placeOptions } from "@/server/options";
+import { categories as allCategories, categoryOptions, categoryWithChildren, placeOptions } from "@/server/options";
+import { keywordCategoryIds } from "@/lib/category-search";
 import { containsCI } from "@/server/sql";
 import { photoUrl } from "@/server/storage";
 
@@ -36,14 +37,18 @@ const filters: (SQL | undefined)[] = [
   ];
 if (q) {
     // Search the public fields only; hidden details are never searchable.
+    const hierarchy = await allCategories();
     const words = q.split(/\s+/).filter(Boolean).slice(0, 5);
     for (const w of words) {
+      const related = keywordCategoryIds(w, hierarchy);
       filters.push(
         or(
           containsCI(schema.report.itemName, w),
           containsCI(schema.report.description, w),
           containsCI(schema.report.brand, w),
+          containsCI(schema.report.color, w),
           containsCI(schema.category.name, w),
+          related.length ? inArray(schema.report.categoryId, related) : undefined,
         ),
       );
     }

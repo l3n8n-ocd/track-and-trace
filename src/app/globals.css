@@ -35,6 +35,8 @@
   --color-rust-tint: #f8e6d8;
   --color-amber-tint: #fff0d9;
   --color-amber-deep: #8a3a05;
+  --color-success: #216344;
+  --color-success-tint: #e6f2e9;
 
   --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-archivo), var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;

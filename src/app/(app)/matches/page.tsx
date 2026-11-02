@@ -9,6 +9,7 @@ import { db, schema } from "@/db";
 import { formatDate } from "@/lib/format";
 import { requireUser } from "@/lib/session";
 import { imagesFor } from "@/server/queries";
+import { actionableMatches } from "@/server/match-visibility";
 import { photoUrl } from "@/server/storage";
 import { dismissMatchAction } from "./actions";
 
@@ -33,6 +34,7 @@ export default async function MatchesPage() {
     .where(
       and(
         eq(lost.userId, user.id),
+        actionableMatches(user.id, lost, schema.report),
         inArray(schema.matchRecord.matchStatus, ["PENDING_VERIFICATION", "CONFIRMED"]),
       ),
     )

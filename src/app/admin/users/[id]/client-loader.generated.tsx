@@ -7,13 +7,15 @@ import { notFound } from "next/navigation";
 import { BadgeCheck, FileText, Inbox, MailWarning, UserCheck, UserX } from "lucide-react";
 import { Flash } from "@/components/flash";
 import { ClaimStatusBadge, ReportStatusBadge, TypeBadge } from "@/components/status-badge";
-import { SubmitButton } from "@/components/submit-button";
+import { ConfirmAction } from "@/components/confirm-action";
 import { Avatar, Badge, Card, CardEmpty, CardHeader, DetailList } from "@/components/ui";
 import { db, schema } from "@/db";
 import { formatDate } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
 import { loadProfile } from "@/server/profile";
-import { setUserStatusAction } from "../../actions";
+import { collegeOptions } from "@/server/options";
+import { revokeUserSessionsAction, setUserStatusAction } from "../../actions";
+import { UserEditor } from "./user-editor";
 
 export const metadata: Metadata = { title: "User" };
 
@@ -25,7 +27,7 @@ const id = (await params).id;
 const sp = await searchParams;
 const user = await db.query.user.findFirst({ where: eq(schema.user.id, id) });
 if (!user) notFound();
-const [profile, college, reports, claims, [logs]] = await Promise.all([
+const [profile, college, reports, claims, [logs], colleges] = await Promise.all([
     loadProfile(id),
     user.collegeId ? db.query.college.findFirst({ where: eq(schema.college.id, user.collegeId) }) : null,
     db.select().from(schema.report).where(eq(schema.report.userId, id)).orderBy(desc(schema.report.dateReported)).limit(20),
@@ -37,6 +39,7 @@ const [profile, college, reports, claims, [logs]] = await Promise.all([
       .orderBy(desc(schema.claim.claimDate))
       .limit(20),
     db.select({ value: count() }).from(schema.activityLog).where(eq(schema.activityLog.userId, id)),
+    collegeOptions(),
   ]);
 const roleDetails: [string, string | null][] = profile.student
     ? [["Course", profile.student.course], ["Year level", String(profile.student.yearLevel)]]
@@ -48,5 +51,5 @@ const roleDetails: [string, string | null][] = profile.student
           ? [["Office", profile.administrator.office], ["Admin level", profile.administrator.adminLevel]]
           : [];
 const active = user.status === "ACTIVE";
-return {admin,user,profile,college,reports,claims,logs};
+return {admin,user,profile,college,reports,claims,logs,colleges};
 }

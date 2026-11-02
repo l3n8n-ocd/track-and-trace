@@ -47,7 +47,7 @@ export async function AppShell({
         ? { href: "/dashboard", label: "Switch to user view" }
         : { href: "/admin", label: "Switch to admin console" }
       : null;
-  const fullName = `${user.firstName} ${user.lastName ?? ""}`.trim();
+  const fullName = user.name || `${user.firstName} ${user.lastName ?? ""}`.trim();
 
   const row = "flex h-11 w-full items-center gap-3 rounded-2xl px-3 text-[15px] font-medium transition-colors";
   const accountCard = (

@@ -22,7 +22,7 @@ export default async function ProfilePage() {
   if (!found) notFound();
   const user = { ...found, ...profile };
 
-  const fullName = `${user.firstName} ${user.lastName}`;
+  const fullName = user.name || `${user.firstName} ${user.lastName}`;
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader icon={UserRound} title="Profile" description="Your account details and settings." />

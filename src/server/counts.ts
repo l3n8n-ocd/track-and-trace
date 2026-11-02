@@ -4,6 +4,8 @@ import { cache } from "react";
 import { db, schema } from "@/db";
 import { daysAgo } from "@/lib/format";
 import { memoizeClientRequest } from "@/lib/session";
+import { alias } from "drizzle-orm/mysql-core";
+import { actionableMatches } from "./match-visibility";
 
 // React cache only deduplicates within the current server render. These live,
 // user-specific counts must never be reused across requests or accounts.
@@ -39,13 +41,13 @@ export async function adminReportBreakdown() {
 }
 
 export const pendingMatchCount = cache((userId: string) => memoizeClientRequest(`counts:matches:${userId}`, async () => {
-  const myLost = db
-    .select({ id: schema.report.id })
-    .from(schema.report)
-    .where(and(eq(schema.report.userId, userId), eq(schema.report.reportType, "LOST")));
+  const lost = alias(schema.report, "count_lost_report");
+  const found = alias(schema.report, "count_found_report");
   const [row] = await db
     .select({ value: count() })
     .from(schema.matchRecord)
-    .where(and(eq(schema.matchRecord.matchStatus, "PENDING_VERIFICATION"), inArray(schema.matchRecord.lostReportId, myLost)));
+    .innerJoin(lost, eq(lost.id, schema.matchRecord.lostReportId))
+    .innerJoin(found, eq(found.id, schema.matchRecord.foundReportId))
+    .where(and(eq(schema.matchRecord.matchStatus, "PENDING_VERIFICATION"), eq(lost.userId, userId), actionableMatches(userId, lost, found)));
   return row;
 }));

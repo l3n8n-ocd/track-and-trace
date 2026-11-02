@@ -5,6 +5,7 @@ import Link from "next/link";
 import { and, desc, eq, gte, lt, lte, or, type SQL } from "drizzle-orm";
 import { Activity, Download, FileText, FolderArchive, Inbox, ListFilter, Search, TimerOff } from "lucide-react";
 import { Flash } from "@/components/flash";
+import { LiveSearchForm } from "@/components/live-search-form";
 import { ReportStatusBadge } from "@/components/status-badge";
 import { Button, Card, CardHeader, Field, ICON_STROKE, Input, PageHeader } from "@/components/ui";
 import { db, schema } from "@/db";

@@ -4,7 +4,7 @@ import { db, schema } from "@/db";
 import { getSessionUser } from "@/lib/session";
 import { logActivity } from "@/server/activity";
 
-// CSV exports for record keeping (FR-M6). Administrators only.
+// CSV and PDF exports share the same authorized data selection and range.
 function csv(rows: Record<string, unknown>[]): string {
   if (!rows.length) return "";
   const headers = Object.keys(rows[0]);
@@ -21,6 +21,8 @@ export async function GET(request: Request) {
   if (!user || user.role !== "admin") return new Response("Forbidden", { status: 403 });
   const url = new URL(request.url);
   const type = url.searchParams.get("type");
+  const format = url.searchParams.get("format") || "csv";
+  if (format !== "csv" && format !== "pdf") return new Response("Unknown export format", { status: 400 });
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
   const range = (col: Parameters<typeof gte>[0]): (SQL | undefined)[] => [
@@ -93,8 +95,17 @@ export async function GET(request: Request) {
     return new Response("Unknown export type", { status: 400 });
   }
 
-  await logActivity(user.id, `Exported ${type}`, "export", type, `${rows.length} rows`);
+  await logActivity(user.id, `Exported ${type}`, "export", type, `${rows.length} rows (${format.toUpperCase()})`);
   const stamp = new Date().toISOString().slice(0, 10);
+  if (format === "pdf") {
+    const { recordsPdf } = await import("@/server/records-pdf");
+    const bytes = await recordsPdf(rows, { type, from, to });
+    return new Response(new Uint8Array(bytes), { headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="track-and-trace-${type}-${stamp}.pdf"`,
+      "Cache-Control": "private, no-store",
+    } });
+  }
   return new Response("﻿" + csv(rows), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

@@ -10,7 +10,7 @@ function Node({ state, tone }: { state: NodeState; tone?: Journey["currentTone"]
   const base = "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full";
   if (state === "done")
     return (
-      <span className={cn(base, "bg-oxblood text-cream")}>
+      <span className={cn(base, "bg-success text-white")}>
         <Check aria-hidden strokeWidth={3} className="size-4" />
       </span>
     );
@@ -29,7 +29,6 @@ function Node({ state, tone }: { state: NodeState; tone?: Journey["currentTone"]
       );
     return (
       <span className={cn(base, tone === "attention" ? "bg-amber" : "border-2 border-amber bg-paper")}>
-        <span aria-hidden className="absolute inset-0 rounded-full bg-amber/50 animate-ping-soft" />
         <span className={cn("size-2.5 rounded-full", tone === "attention" ? "bg-ink" : "bg-amber")} />
       </span>
     );
@@ -67,23 +66,23 @@ export function StatusJourney({
           const connector = !next
             ? null
             : s.state === "done" && next.state === "done"
-              ? "bg-oxblood"
+              ? "bg-success"
               : s.state === "done" && next.state === "current"
-                ? "bg-linear-to-b from-oxblood to-amber md:bg-linear-to-r"
+                ? "bg-linear-to-b from-success to-amber md:bg-linear-to-r"
                 : s.state === "done" && next.state === "ended"
-                  ? "bg-linear-to-b from-oxblood to-berry/50 md:bg-linear-to-r"
+                  ? "bg-linear-to-b from-success to-berry/50 md:bg-linear-to-r"
                   : "bg-line-strong";
           return (
             <li
               key={`${s.label}-${i}`}
               aria-current={s.state === "current" ? "step" : undefined}
-              className="relative flex gap-3 pb-6 last:pb-0 md:flex-col md:pb-0 md:pr-4"
+              className="relative min-w-0 flex gap-3 pb-6 last:pb-0 md:flex-col md:pb-0 md:pr-4"
             >
               {connector && (
                 <span
                   aria-hidden
                   className={cn(
-                    "absolute bottom-0 left-[15px] top-8 w-0.5 md:bottom-auto md:left-8 md:right-0 md:top-[15px] md:h-0.5 md:w-auto",
+                    "absolute bottom-2 left-[15px] top-10 w-0.5 md:bottom-auto md:left-10 md:right-2 md:top-[15px] md:h-0.5 md:w-auto",
                     connector,
                   )}
                 />
@@ -119,7 +118,7 @@ export function StatusJourney({
         <div
           className={cn(
             "mt-5 flex items-start gap-2.5 rounded-xl px-3.5 py-3 text-sm",
-            complete ? "bg-oxblood text-cream" : currentTone === "attention" ? "bg-amber-tint text-[#5a2a05]" : "bg-sand text-ink-soft",
+            complete ? "bg-success text-white" : currentTone === "attention" ? "bg-amber-tint text-[#5a2a05]" : "bg-sand text-ink-soft",
           )}
         >
           {complete ? (

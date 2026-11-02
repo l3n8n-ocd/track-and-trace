@@ -19,7 +19,7 @@ export function useLocation() {
   return useSyncExternalStore(subscribe,()=>window.location.pathname+window.location.search+"#nav="+navigationVersion,()=>"/");
 }
 export function usePathname() { useLocation(); return window.location.pathname; }
-export function useRouter() { return {push:navigate,replace:(url:string)=>navigate(url,true),refresh:notifyNavigation,back:()=>window.history.back()}; }
+export function useRouter() { return {push:navigate,replace:(url:string,options?:{scroll?:boolean})=>{ void options; navigate(url,true); },refresh:notifyNavigation,back:()=>window.history.back()}; }
 export function useSearchParams() { useLocation(); return new URLSearchParams(window.location.search); }
 export function redirect(url:string):never { throw new NavigationSignal(url); }
 export function notFound():never { throw new NavigationSignal("",true); }

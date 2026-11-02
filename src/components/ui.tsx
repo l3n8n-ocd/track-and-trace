@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { LiveSearchForm } from "./live-search-form";
+import { SuccessToast } from "./success-toast";
 import { twMerge } from "tailwind-merge";
 import type { ComponentProps, ReactNode } from "react";
 import {
@@ -204,7 +206,7 @@ const tones: Record<Tone, string> = {
   gray: "bg-sand text-ink-soft ring-line-strong",
   red: "bg-berry-tint text-berry ring-berry/25",
   amber: "bg-amber-tint text-amber-deep ring-amber/40",
-  green: "bg-crimson-tint text-crimson ring-crimson/25",
+  green: "bg-success-tint text-success ring-success/30",
   blue: "bg-paper text-ink-soft ring-line-strong",
   purple: "bg-rust-tint text-rust ring-rust/30",
   dark: "bg-ink text-cream ring-ink",
@@ -285,12 +287,13 @@ export function EmptyState({
 
 const alertStyles = {
   red: { box: "bg-berry-tint text-[#5c0020] border-berry/25", icon: CircleAlert, iconClass: "text-berry" },
-  green: { box: "bg-amber-tint text-[#5a2a05] border-amber/40", icon: CircleCheck, iconClass: "text-rust" },
+  green: { box: "bg-success-tint text-success border-success/30", icon: CircleCheck, iconClass: "text-success" },
   amber: { box: "bg-rust-tint text-[#5a2205] border-rust/25", icon: TriangleAlert, iconClass: "text-rust" },
   blue: { box: "bg-paper text-ink-soft border-line-strong", icon: Info, iconClass: "text-crimson" },
 };
 
 export function Alert({ tone = "red", children }: { tone?: keyof typeof alertStyles; children: ReactNode }) {
+  if (tone === "green") return <SuccessToast>{children}</SuccessToast>;
   const s = alertStyles[tone];
   const Icon = s.icon;
   return (
@@ -427,7 +430,7 @@ export function Avatar({ name, className }: { name: string; className?: string }
 
 // Filter bars on list pages.
 export function Toolbar({ className, ...props }: ComponentProps<"form">) {
-  return <form className={cn("mb-5 rounded-2xl border border-line bg-paper p-3 sm:p-4", className)} {...props} />;
+  return <LiveSearchForm className={cn("mb-5 rounded-2xl border border-line bg-paper p-3 sm:p-4", className)} {...props} />;
 }
 
 // Highlighted item: a soft tinted panel with a thin inset bar and an icon

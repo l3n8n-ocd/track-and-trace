@@ -5,13 +5,15 @@ import { notFound } from "next/navigation";
 import { BadgeCheck, FileText, Inbox, MailWarning, UserCheck, UserX } from "lucide-react";
 import { Flash } from "@/components/flash";
 import { ClaimStatusBadge, ReportStatusBadge, TypeBadge } from "@/components/status-badge";
-import { SubmitButton } from "@/components/submit-button";
+import { ConfirmAction } from "@/components/confirm-action";
 import { Avatar, Badge, Card, CardEmpty, CardHeader, DetailList } from "@/components/ui";
 import { db, schema } from "@/db";
 import { formatDate } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
 import { loadProfile } from "@/server/profile";
-import { setUserStatusAction } from "../../actions";
+import { collegeOptions } from "@/server/options";
+import { revokeUserSessionsAction, setUserStatusAction } from "../../actions";
+import { UserEditor } from "./user-editor";
 
 export const metadata: Metadata = { title: "User" };
 
@@ -23,7 +25,7 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
   const sp = await searchParams;
   const user = await db.query.user.findFirst({ where: eq(schema.user.id, id) });
   if (!user) notFound();
-  const [profile, college, reports, claims, [logs]] = await Promise.all([
+  const [profile, college, reports, claims, [logs], colleges] = await Promise.all([
     loadProfile(id),
     user.collegeId ? db.query.college.findFirst({ where: eq(schema.college.id, user.collegeId) }) : null,
     db.select().from(schema.report).where(eq(schema.report.userId, id)).orderBy(desc(schema.report.dateReported)).limit(20),
@@ -35,6 +37,7 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
       .orderBy(desc(schema.claim.claimDate))
       .limit(20),
     db.select({ value: count() }).from(schema.activityLog).where(eq(schema.activityLog.userId, id)),
+    collegeOptions(),
   ]);
 
   const roleDetails: [string, string | null][] = profile.student
@@ -70,18 +73,14 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
               )}
             </p>
           </div>
-          {user.id !== admin.id && (
-            <form action={setUserStatusAction.bind(null, user.id)} className="sm:text-right">
+          {user.id !== admin.id && <div className="flex flex-wrap gap-2">
+            <ConfirmAction action={revokeUserSessionsAction.bind(null, user.id)} title="Sign out this user?" description="Their current sessions on all devices will end. An active account can sign in again." label="Sign out all devices" variant="secondary" />
+            <ConfirmAction action={setUserStatusAction.bind(null, user.id)} title={active ? "Deactivate this account?" : "Reactivate this account?"}
+              description={active ? "The user will be signed out and unable to log in. Their reports, claims, and history will be kept." : "The user can sign in again with their existing credentials after any required email verification."}
+              label={<>{active ? <UserX aria-hidden /> : <UserCheck aria-hidden />}{active ? "Deactivate account" : "Reactivate account"}</>} variant={active ? "danger" : "success"}>
               <input type="hidden" name="status" value={active ? "DEACTIVATED" : "ACTIVE"} />
-              <SubmitButton variant={active ? "danger" : "success"}>
-                {active ? <UserX aria-hidden /> : <UserCheck aria-hidden />}
-                {active ? "Deactivate account" : "Reactivate account"}
-              </SubmitButton>
-              <p className="mt-1.5 text-xs text-ink-muted">
-                {active ? "They're signed out; records are kept." : "Restores their access."}
-              </p>
-            </form>
-          )}
+            </ConfirmAction>
+          </div>}
         </div>
         <div className="border-t border-line p-5 sm:p-6">
           <DetailList
@@ -98,6 +97,7 @@ export default async function AdminUserPage({ params, searchParams }: PageProps<
           />
         </div>
       </Card>
+      <UserEditor user={user} profile={profile} colleges={colleges} isSelf={user.id === admin.id} />
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader icon={FileText} title="Reports" description={`${reports.length} most recent`} />

@@ -188,7 +188,7 @@ function SidebarBody({
   onNavigate?: () => void;
 }) {
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[28px] bg-night text-cream">
+    <div className="flex h-full flex-col overflow-hidden rounded-[28px] bg-oxblood text-cream">
       <div className="px-6 pb-1 pt-6">
         <Logo tone="light" href={section === "admin" ? "/admin" : "/dashboard"} />
       </div>

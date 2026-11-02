@@ -26,6 +26,11 @@ function hasValue(form: HTMLFormElement, name: string) {
   if (el instanceof HTMLInputElement) {
     if (el.type === "checkbox" || el.type === "radio") return el.checked;
     if (el.type === "file") return (el.files?.length ?? 0) > 0;
+    if (!el.validity.valid) return false;
+    if (name === "confirmPassword") {
+      const password = form.elements.namedItem("password");
+      if (password instanceof HTMLInputElement && el.value !== password.value) return false;
+    }
   }
   return Boolean((el as HTMLInputElement).value?.trim());
 }
@@ -101,7 +106,7 @@ export function StepTracker({
           {completed === steps.length ? "All set" : `${completed} of ${steps.length} complete`}
         </p>
       </div>
-      <ol className="mt-3.5 grid" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
+      <ol className="relative isolate mt-3.5 grid" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
         {steps.map((s, i) => {
           const isActive = i === activeIndex;
           const state = errored[i] && !done[i] ? "error" : done[i] ? "done" : isActive ? "active" : "todo";
@@ -111,7 +116,7 @@ export function StepTracker({
                 <span
                   aria-hidden
                   className={cn(
-                    "absolute right-1/2 top-4 h-0.5 w-full -translate-y-1/2 rounded-full transition-colors duration-500",
+                    "absolute right-[calc(50%+20px)] top-4 z-0 h-0.5 w-[calc(100%-40px)] -translate-y-1/2 rounded-full transition-colors duration-500",
                     done[i - 1] ? "bg-amber" : "bg-cream/20",
                   )}
                 />
@@ -129,7 +134,7 @@ export function StepTracker({
               >
                 <span
                   className={cn(
-                    "flex size-8 items-center justify-center rounded-full text-xs font-bold transition-all duration-300",
+                    "relative z-10 flex size-8 items-center justify-center rounded-full text-xs font-bold transition-all duration-300",
                     state === "done" && "bg-amber text-ink",
                     state === "error" && "bg-berry text-cream ring-2 ring-cream/70",
                     state === "active" && "bg-cream text-oxblood ring-4 ring-cream/20",
@@ -146,9 +151,8 @@ export function StepTracker({
                 </span>
                 <span
                   className={cn(
-                    "max-w-full truncate text-xs font-semibold sm:text-[13px]",
+                    "max-w-full break-words text-[11px] font-semibold leading-4 sm:text-[13px]",
                     state === "error" ? "text-[#ffb3c4]" : isActive || state === "done" ? "text-cream" : "text-cream/65",
-                    !isActive && "max-sm:sr-only",
                   )}
                 >
                   {s.label}

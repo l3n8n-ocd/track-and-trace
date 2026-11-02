@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { ChevronRight, EyeOff, Info, Pencil, ScanSearch, Undo2 } from "lucide-react";
 import { MatchScore, MatchStatusBadge, ReportStatusBadge, TypeBadge } from "@/components/status-badge";
 import { StatusJourney } from "@/components/status-journey";
-import { SubmitButton } from "@/components/submit-button";
+import { ConfirmAction } from "@/components/confirm-action";
 import { Alert, Card, CardHeader, DetailList, ICON_STROKE, LinkButton, PageHeader } from "@/components/ui";
 import { db, schema } from "@/db";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -73,12 +73,9 @@ export default async function ReportPage({ params, searchParams }: PageProps<"/r
                 <Pencil aria-hidden />
                 Edit
               </LinkButton>
-              <form action={withdrawReportAction.bind(null, id)}>
-                <SubmitButton variant="danger" pendingText="Withdrawing…">
-                  <Undo2 aria-hidden />
-                  Withdraw
-                </SubmitButton>
-              </form>
+              <ConfirmAction action={withdrawReportAction.bind(null, id)} title="Withdraw this report?"
+                description="This report will be archived and its pending match suggestions dismissed. Your report history will be kept."
+                label={<><Undo2 aria-hidden />Withdraw</>} pendingText="Withdrawing…" />
             </>
           )
         }

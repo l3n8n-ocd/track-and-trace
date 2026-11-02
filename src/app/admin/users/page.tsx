@@ -49,7 +49,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
       <PageHeader
         icon={Users}
         title="Users"
-        description="Registered students, faculty, staff, and administrators."
+        description="Find a user to edit their information, manage access, or deactivate their account."
         actions={
           <LinkButton href="/admin/users/new">
             <UserPlus aria-hidden />
@@ -86,7 +86,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
           Try a different name, email, or ID number.
         </EmptyState>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-line bg-paper">
+        <div className="overflow-x-auto rounded-2xl border border-line bg-paper">
           <table className="min-w-full text-sm max-md:block">
             <thead className="bg-cream/70 text-left text-xs font-semibold uppercase tracking-wider text-ink-muted max-md:hidden">
               <tr>
@@ -96,6 +96,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
                 <th className="px-4 py-3">College / office</th>
                 <th className="px-4 py-3">Account</th>
                 <th className="px-4 py-3">Joined</th>
+                <th className="px-4 py-3">Manage</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line max-md:block">
@@ -133,6 +134,12 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-ink-muted max-md:hidden">{formatDate(u.createdAt)}</td>
+                    <td className="relative z-10 px-4 py-3 max-md:w-full max-md:p-0">
+                      <div className="flex flex-wrap gap-3 text-xs font-semibold text-crimson">
+                        <Link href={`/admin/users/${u.id}#profile`} className="hover:underline">Edit</Link>
+                        <Link href={`/admin/users/${u.id}#access`} className="hover:underline">Access &amp; status</Link>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}

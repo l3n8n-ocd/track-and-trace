@@ -3,6 +3,7 @@ import { asc } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
+import { descendantCategoryIds } from "@/lib/category-search";
 
 // Only shared reference data is persisted. Each matching admin mutation
 // expires its tag immediately; user-specific data never enters this cache.
@@ -63,6 +64,5 @@ export async function storageOptions(): Promise<LocationOption[]> {
 
 // The category and all its children, for filtering searches.
 export async function categoryWithChildren(categoryId: number): Promise<number[]> {
-  const children = (await categories()).filter((c) => c.parentId === categoryId);
-  return [categoryId, ...children.map((c) => c.id)];
+  return descendantCategoryIds(categoryId, await categories());
 }

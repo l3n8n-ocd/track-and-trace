@@ -23,7 +23,8 @@ function App(){
   useEffect(()=>{
     let cancelled=false;
     const controller=new AbortController();
-    const screenKey=window.location.pathname+window.location.search;
+    const filtersOnly=["/search","/admin/users","/admin/reports","/admin/claims","/admin/records"].includes(window.location.pathname);
+    const screenKey=window.location.pathname+(filtersOnly?"":window.location.search);
     const current=matchRoute(window.location.pathname);
     queueMicrotask(()=>{if(!cancelled){setBusy(true);setError("");}});
     async function load(){

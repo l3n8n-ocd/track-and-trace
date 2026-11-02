@@ -23,6 +23,6 @@ const [found, profile, colleges] = await Promise.all([
   ]);
 if (!found) notFound();
 const user = { ...found, ...profile };
-const fullName = `${user.firstName} ${user.lastName}`;
+const fullName = user.name || `${user.firstName} ${user.lastName}`;
 return {session,found,profile,colleges};
 }

@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 import { ChevronRight, EyeOff, Info, Pencil, ScanSearch, Undo2 } from "lucide-react";
 import { MatchScore, MatchStatusBadge, ReportStatusBadge, TypeBadge } from "@/components/status-badge";
 import { StatusJourney } from "@/components/status-journey";
-import { SubmitButton } from "@/components/submit-button";
+import { ConfirmAction } from "@/components/confirm-action";
 import { Alert, Card, CardHeader, DetailList, ICON_STROKE, LinkButton, PageHeader } from "@/components/ui";
 import { db, schema } from "@/db";
 import { formatDate, formatDateTime } from "@/lib/format";
