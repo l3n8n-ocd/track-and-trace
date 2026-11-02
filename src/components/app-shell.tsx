@@ -79,9 +79,9 @@ export async function AppShell({
       <div className="flex min-h-full min-w-0 flex-1 flex-col lg:pl-[280px]">
         <header className="sticky top-0 z-20 border-b border-line bg-cream">
           <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
-            <div className="flex items-center gap-2 lg:hidden">
+            <div className="flex min-w-0 items-center gap-2 lg:hidden">
               <MobileNav section={section} counts={counts} footer={accountCard} />
-              <Logo href={section === "admin" ? "/admin" : "/dashboard"} className="[&_span]:text-[15px]" />
+              <Logo href={section === "admin" ? "/admin" : "/dashboard"} className="[&_span]:text-[15px] max-[360px]:[&>span]:hidden" />
             </div>
             <p className="hidden text-sm text-ink-muted lg:block">
               {section === "admin" ? (
@@ -94,7 +94,7 @@ export async function AppShell({
                 </>
               )}
             </p>
-            <div className="flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-1.5">
               {section === "user" && (
                 <Link
                   href="/search"
