@@ -59,7 +59,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
       />
       <Flash sp={sp} />
       <Tabs
-        className="mb-4"
+        className="mb-4 flex-wrap overflow-x-visible"
         items={[
           { href: link(null), label: "Everyone", active: !role, count: roleCounts.reduce((n, c) => n + c.value, 0) },
           ...ROLES.map((r) => ({
