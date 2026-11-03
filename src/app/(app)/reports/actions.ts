@@ -60,12 +60,27 @@ function errorsOf(error: z.ZodError) {
   return out;
 }
 
+// The category and place must be ones the form offers; a value changed in the
+// browser would otherwise reach the database and fail there.
+async function referenceErrors(categoryId: number, locationId: number, isNew: boolean) {
+  const [category, place] = await Promise.all([
+    db.query.category.findFirst({ columns: { id: true }, where: eq(schema.category.id, categoryId) }),
+    db.query.location.findFirst({ where: eq(schema.location.id, locationId) }),
+  ]);
+  const errors: Record<string, string> = {};
+  if (!category) errors.categoryId = "Choose a category from the list";
+  if (!place || place.isStorage || (isNew && !place.isActive)) errors.locationId = "Choose a place from the list";
+  return Object.keys(errors).length ? errors : null;
+}
+
 export async function createReportAction(_: ReportFormState, formData: FormData): Promise<ReportFormState> {
   const user = await requireUser();
   const values = collect(formData);
   const parsed = reportSchema.safeParse(values);
   if (!parsed.success) return { fieldErrors: errorsOf(parsed.error), values };
   const d = parsed.data;
+  const badReference = await referenceErrors(d.categoryId, d.locationId, true);
+  if (badReference) return { fieldErrors: badReference, values };
 
   const photos = photosFrom(formData);
   if (photos.length > 5) return { fieldErrors: { photos: "Add up to 5 photos" }, values };
@@ -125,6 +140,8 @@ export async function updateReportAction(
   const parsed = reportSchema.safeParse({ ...values, reportType: report.reportType });
   if (!parsed.success) return { fieldErrors: errorsOf(parsed.error), values };
   const d = { ...parsed.data, reportType: undefined };
+  const badReference = await referenceErrors(d.categoryId, d.locationId, d.locationId !== report.locationId);
+  if (badReference) return { fieldErrors: badReference, values };
 
   const removeIds = formData
     .getAll("removeImage")

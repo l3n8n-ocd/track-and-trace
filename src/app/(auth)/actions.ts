@@ -9,6 +9,7 @@ import { db, schema } from "@/db";
 import { auth } from "@/lib/auth";
 import { appUrl } from "@/lib/env";
 import { clientOrigin } from "@/lib/client-origin";
+import { clearLoginFailures, clientIp, loginBlocked, recordLoginFailure } from "@/server/login-limit";
 
 export type FormState = {
   error?: string;
@@ -166,14 +167,20 @@ export async function loginAction(_: FormState, formData: FormData): Promise<For
   const parsed = loginSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values: kept };
   const { email, password, next } = parsed.data;
+  const requestHeaders = await headers();
+  const ip = clientIp(requestHeaders);
+  if (await loginBlocked(ip, email)) {
+    return { error: "Too many attempts. Please wait a minute and try again.", values: kept };
+  }
 
   let role = "student";
   try {
     const res = await auth.api.signInEmail({
       body: { email, password, callbackURL: await dashboardCallback() },
-      headers: await headers(),
+      headers: requestHeaders,
     });
     role = (res.user as { role?: string }).role ?? "student";
+    await clearLoginFailures(ip, email);
   } catch (error) {
     if (error instanceof APIError) {
       if (error.status === "FORBIDDEN" && /verif/i.test(error.message)) {
@@ -186,6 +193,7 @@ export async function loginAction(_: FormState, formData: FormData): Promise<For
       if (error.status === "TOO_MANY_REQUESTS") {
         return { error: "Too many attempts. Please wait a minute and try again.", values: kept };
       }
+      await recordLoginFailure(ip, email);
       return { error: "Invalid email or password.", values: kept };
     }
     throw error;
