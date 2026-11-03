@@ -1,0 +1,94 @@
+# Records the Selenium suite running in a visible Chrome window (on a virtual
+# screen) against the Firebase front end, as evidence for the SIA video.
+# Run it from the Actions tab or `gh workflow run selenium-video.yml`.
+# The video and the test output are saved to the `recordings` branch.
+name: Selenium video
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: returndesk
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      # Throwaway values for the CI database; no real accounts or keys.
+      DATABASE_URL: mysql://root:root@127.0.0.1:3306/returndesk
+      BETTER_AUTH_SECRET: ci-only-secret-not-used-anywhere-else
+      APP_URL: http://localhost:3000
+      CLIENT_APP_URL: http://localhost:5173
+      CRON_SECRET: ci-cron-secret
+      ADMIN_EMAIL: admin@ci.trackandtrace.test
+      ADMIN_PASSWORD: CiAdmin12345
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Create tables, seed data, and test accounts
+        run: |
+          npm run db:setup
+          npx tsx tests/api/setup-users.ts
+      - run: npm run build:app
+      - name: Start the backend and the Firebase front end
+        env:
+          VITE_API_BASE_URL: http://localhost:3000
+        run: |
+          npm run start > app.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/login && break; sleep 2; done
+          npm ci --prefix frontend
+          npm run frontend:build
+          npm --prefix frontend run preview > frontend.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:5173 && break; sleep 1; done
+      - name: Install the screen recorder
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg xvfb > /dev/null
+      - name: Run Selenium in a visible browser while recording
+        env:
+          BASE_URL: http://localhost:5173
+          HEADED: "1"
+          SLOW_MO: "700"
+          DISPLAY: ":99"
+        run: |
+          mkdir -p recording
+          Xvfb :99 -screen 0 1280x900x24 > /dev/null 2>&1 &
+          sleep 2
+          ffmpeg -loglevel error -y -f x11grab -video_size 1280x900 -framerate 25 -i :99 \
+            -c:v libx264 -preset veryfast -pix_fmt yuv420p recording/selenium-run.mp4 &
+          FFMPEG=$!
+          sleep 1
+          set +e
+          npm run test:selenium -- --test-reporter=spec 2>&1 | tee recording/selenium-output.txt
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          sleep 2
+          kill -INT $FFMPEG
+          wait $FFMPEG || true
+          echo "exit code: $STATUS" >> recording/selenium-output.txt
+          date -u +"recorded %Y-%m-%dT%H:%M:%SZ from commit $GITHUB_SHA (run $GITHUB_RUN_ID)" > recording/README.txt
+          exit 0
+      - name: Save the recording to the recordings branch
+        run: |
+          cd recording
+          git init -q
+          git checkout -q -b recordings
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -q -m "Selenium run recording ($GITHUB_RUN_ID)"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" recordings
