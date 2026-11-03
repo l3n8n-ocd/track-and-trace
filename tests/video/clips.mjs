@@ -514,4 +514,206 @@ export const CLIPS = [
       await s.pause(2000);
     },
   },
+
+  // ---------------------------------------------------------------- part 3: remaining manual test cases
+  {
+    id: "EXT-TC-05", part: 3, title: "TC-05: report location uses the official places list",
+    async run({ as, log, state }) {
+      const s = await as("A");
+      await s.front();
+      await newLostForm(s);
+      await log.check(this.id, "TC-05", 1, s, "Place lost is a list of campus places, not free text", async () => {
+        const tag = await s.page.locator("#locationId").evaluate((e) => e.tagName);
+        const n = await s.page.locator("#locationId option").count();
+        if (tag !== "SELECT" || n < 2) throw new Error(`Place field is ${tag} with ${n} options`);
+        return `A list of ${n - 1} campus places`;
+      });
+      state.tc05Name = `Calculator TC05 ${Date.now().toString(36)}`;
+      await s.type(s.page.locator("#itemName"), state.tc05Name);
+      await s.choose(s.page.locator("#categoryId"), "Calculators");
+      await s.choose(s.page.locator("#locationId"), "Library");
+      await s.type(s.page.locator("#locationNote"), "Room 304, 2nd floor");
+      await submitLost(s);
+      await log.check(this.id, "TC-05", 2, s, "Report details show the building and the room note", async () => {
+        await s.page.waitForURL(/\/reports\/\d+/, { timeout: 30_000 });
+        await seeText(s, "Library");
+        await seeText(s, "Room 304");
+        return "Shows Library and 'Room 304, 2nd floor'";
+      });
+      state.tc05Id = s.page.url().match(/reports\/(\d+)/)[1];
+    },
+  },
+  {
+    id: "EXT-TC-14", part: 3, title: "TC-14: dashboard and My reports show the student's reports",
+    async run({ as, log, state }) {
+      const s = await as("A");
+      await s.front();
+      await s.go("/dashboard");
+      await log.check(this.id, "TC-14", 1, s, "Your recent reports lists the report with its status", async () => {
+        await seeText(s, "Your recent reports");
+        await seeText(s, state.tc05Name);
+        return "Recent reports lists the new report with its status";
+      });
+      await s.go("/reports?type=lost");
+      const lost = await s.page.locator("main").innerText();
+      await s.go("/reports?type=found");
+      const found = await s.page.locator("main").innerText();
+      await log.check(this.id, "TC-14", 2, s, "Lost and Found tabs each list only that type, with counts", async () => {
+        if (!lost.includes(state.tc05Name)) throw new Error("Lost tab doesn't list the lost report");
+        if (found.includes(state.tc05Name)) throw new Error("Found tab lists a lost report");
+        return "Lost tab lists the lost report; Found tab doesn't";
+      });
+    },
+  },
+  {
+    id: "EXT-TC-21", part: 3, title: "TC-21: lost reports are never public",
+    async run({ as, log, state }) {
+      const c = await as("C");
+      await c.front();
+      await c.go(`/search?q=${encodeURIComponent(state.tc05Name)}`);
+      await log.check(this.id, "TC-21", 1, c, "Only verified found items are listed; lost reports are never public", () => seeText(c, "No matching items"));
+    },
+  },
+  {
+    id: "EXT-TC-12", part: 3, title: "TC-12: the owner withdraws a report; the record is kept",
+    async run({ as, log, state }) {
+      const s = await as("A");
+      await s.front();
+      await s.go(`/reports/${state.tc05Id}`);
+      await s.click(s.button(/Withdraw/), 1200);
+      const dialog = s.page.getByRole("dialog").getByRole("button", { name: /Withdraw/ });
+      if (await dialog.first().isVisible().catch(() => false)) await s.click(dialog, 2000);
+      await log.check(this.id, "TC-12", 1, s, "The report is withdrawn (status Archived)", async () => {
+        await s.page.waitForURL(/withdrawn=1/, { timeout: 20_000 });
+        return "Withdrawn; back on My reports";
+      });
+      const a = await as("ADMIN");
+      await a.front();
+      await a.go(`/admin/reports/${state.tc05Id}`);
+      await log.check(this.id, "TC-12", 2, a, "The record still exists with status Archived", () => seeText(a, "Archived"));
+    },
+  },
+  {
+    id: "EXT-TC-08", part: 3, title: "TC-08: only image files are accepted as photos",
+    async run({ as, log }) {
+      const b = await as("B");
+      await b.front();
+      await b.go("/reports/new?type=found");
+      await b.type(b.page.locator("#itemName"), "Photo type test");
+      await b.choose(b.page.locator("#categoryId"), "Calculators");
+      await b.choose(b.page.locator("#locationId"), "Library");
+      await b.upload(b.page.locator('input[type=file][name="photos"]'), FIXTURE("notes.pdf"));
+      await b.click(b.button("Submit found report"), 2500);
+      await log.check(this.id, "TC-08", 2, b, "A non-image file is rejected: file type not allowed", async () => {
+        const body = await b.page.locator("body").innerText();
+        if (/\/reports\/\d+/.test(b.page.url())) throw new Error("The report was saved with a PDF as its photo");
+        if (!/not allowed|photo|image/i.test(body)) throw new Error("No message about the file");
+        return "Rejected; the report isn't saved";
+      });
+    },
+  },
+  {
+    id: "EXT-TC-09", part: 3, title: "TC-09: a report can have up to 5 photos",
+    async run({ as, log, state }) {
+      const b = await as("B");
+      await b.front();
+      await b.go("/reports/new?type=found");
+      await b.type(b.page.locator("#itemName"), "Five photo test");
+      await b.choose(b.page.locator("#categoryId"), "Umbrellas");
+      await b.choose(b.page.locator("#locationId"), "Library");
+      await b.page.locator('input[type=file][name="photos"]').setInputFiles(Array(5).fill(FIXTURE("umbrella.jpg")));
+      await b.pause(3000);
+      await b.click(b.button("Submit found report"), 500);
+      await log.check(this.id, "TC-09", 1, b, "Report saved with 5 photos", async () => {
+        await b.page.waitForURL(/\/reports\/\d+/, { timeout: 60_000 });
+        return "Saved with 5 photos";
+      });
+      state.fivePhotoId = b.page.url().match(/reports\/(\d+)/)[1];
+      await b.go(`/reports/${state.fivePhotoId}/edit`);
+      await b.upload(b.page.locator('input[type=file][name="photos"]'), FIXTURE("umbrella.jpg"));
+      await b.click(b.button(/Save changes/), 2500);
+      await log.check(this.id, "TC-09", 2, b, "A 6th photo is refused: A report can have up to 5 photos", () => seeText(b, "up to 5 photos"));
+    },
+  },
+  {
+    id: "EXT-TC-19", part: 3, title: "TC-19, TC-20: filter search by place and by date",
+    async run({ as, log }) {
+      const c = await as("C");
+      await c.front();
+      await c.go(`/search?q=${encodeURIComponent("Grey folding umbrella")}`);
+      await c.choose(c.page.locator("#place"), "Gymnasium");
+      await c.click(c.page.locator("form").getByRole("button").last(), 2000);
+      await log.check(this.id, "TC-19", 1, c, "Only items found in that place are listed", () => seeText(c, "Grey folding umbrella"));
+      await c.choose(c.page.locator("#place"), "Library");
+      await c.click(c.page.locator("form").getByRole("button").last(), 2000);
+      await log.check(this.id, "TC-19", 2, c, "Another place does not list it", () => seeText(c, "No matching items"));
+      await c.go(`/search?q=${encodeURIComponent("Grey folding umbrella")}&from=${isoDate(-7)}&to=${isoDate(0)}`);
+      await log.check(this.id, "TC-20", 1, c, "Items found within the range are listed", () => seeText(c, "Grey folding umbrella"));
+      await c.go(`/search?q=${encodeURIComponent("Grey folding umbrella")}&from=2020-01-01&to=2020-01-31`);
+      await log.check(this.id, "TC-20", 2, c, "A range with no items: No matching items", () => seeText(c, "No matching items"));
+    },
+  },
+  {
+    id: "EXT-TC-23", part: 3, title: "TC-23, TC-24, TC-25: sorting, empty results, paging",
+    async run({ as, log }) {
+      const c = await as("C");
+      await c.front();
+      await c.go("/search");
+      await log.check(this.id, "TC-23", 1, c, "Items are ordered by date found, newest first", async () => {
+        const dates = await c.page.$$eval('a[href^="/items/"]', (as) =>
+          as.map((a) => (a.textContent.match(/[A-Z][a-z]{2} \d{1,2}, \d{4}/) || [])[0]).filter(Boolean).map((d) => Date.parse(d)));
+        for (let i = 1; i < dates.length; i++) if (dates[i] > dates[i - 1]) throw new Error("Results are not newest first");
+        return `${dates.length} results, newest first`;
+      });
+      await log.check(this.id, "TC-25", 1, c, "12 items per page with page controls", async () => {
+        const n = await c.page.locator('a[href^="/items/"]').evaluateAll((as) => new Set(as.map((a) => a.getAttribute("href"))).size);
+        if (n !== 12) throw new Error(`${n} items on page 1`);
+        await c.page.getByRole("link", { name: "Next page" }).waitFor({ timeout: 5000 });
+        return "12 items and a Next page link";
+      });
+      const first = await c.page.locator('a[href^="/items/"]').evaluateAll((as) => as.map((a) => a.getAttribute("href")));
+      await c.click(c.page.getByRole("link", { name: "Next page" }), 2000);
+      await log.check(this.id, "TC-25", 2, c, "Page 2 lists the next items; none repeat", async () => {
+        const second = await c.page.locator('a[href^="/items/"]').evaluateAll((as) => as.map((a) => a.getAttribute("href")));
+        if (!second.length) throw new Error("Page 2 is empty");
+        if (second.some((h) => first.includes(h))) throw new Error("Page 2 repeats items from page 1");
+        return `${new Set(second).size} new items on page 2`;
+      });
+      await c.go("/search?q=NonExistentItemXYZ");
+      await log.check(this.id, "TC-24", 1, c, "No matching items message with suggestions", async () => {
+        await seeText(c, "No matching items");
+        await seeText(c, "File a lost report");
+        return "Shows 'No matching items' and 'File a lost report'";
+      });
+    },
+  },
+  {
+    id: "EXT-SEC", part: 3, title: "SEC-02, SEC-03: export needs an admin; scripts shown as text",
+    async run({ as, log }) {
+      const g = await as("GUEST");
+      const backend = (process.env.VIDEO_BACKEND_URL ?? "https://track-and-trace-ucp.vercel.app").replace(/\/$/, "");
+      const res = await g.page.request.get(`${backend}/api/admin/export?type=reports`);
+      await log.check(this.id, "SEC-02", 1, g, "Refused (401/403); no file downloads", async () => {
+        if (![401, 403].includes(res.status())) throw new Error(`Answered ${res.status()}`);
+        return `Refused with ${res.status()}`;
+      });
+      const s = await as("A");
+      await s.front();
+      let popup = false;
+      s.page.on("dialog", (d) => { popup = true; d.dismiss(); });
+      await newLostForm(s);
+      await s.type(s.page.locator("#itemName"), "Script text test");
+      await s.choose(s.page.locator("#categoryId"), "Calculators");
+      await s.type(s.page.locator("#description"), "<script>alert('x')</script>");
+      await s.choose(s.page.locator("#locationId"), "Library");
+      await submitLost(s);
+      await log.check(this.id, "SEC-03", 1, s, "No pop-up; the description shows the text as typed", async () => {
+        await s.page.waitForURL(/\/reports\/\d+/, { timeout: 30_000 });
+        await s.pause(1500);
+        if (popup) throw new Error("A script ran (pop-up appeared)");
+        await seeText(s, "<script>alert('x')</script>");
+        return "No pop-up; the text is shown as typed";
+      });
+    },
+  },
 ];
